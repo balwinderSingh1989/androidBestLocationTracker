@@ -7,7 +7,7 @@ android-location-tracker<p align="center">
 </p>
 ========================
 
-Android Simple Location Tracker is an Android library that helps you get user best  location with a object named `BaseLocationStrategy`
+Android Best Location Tracker is an Android library that helps you get user best  location with a object named `BaseLocationStrategy`
 that would give a accurate location using accuracy alogirthm.  
 
 
