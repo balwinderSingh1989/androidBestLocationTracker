@@ -155,5 +155,5 @@ protected void onResume() {
 
 ### Contact & Questions
 
-If you have any questions, fell free to send me a mail.
+If you have any questions, fell free to send me an email at er.vicky1989@gmail.com
 You can also fork this project, or open an issue :)
