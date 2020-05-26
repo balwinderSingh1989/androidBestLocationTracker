@@ -51,7 +51,7 @@ Don't forget to add the following permissions to your *AndroidManifest.xml*
 
 ### Use
 
-As its name says, it's a *simple* library.
+
 To create a tracker you just need to add the below code in your Android Activity/Service
 
 ```java
