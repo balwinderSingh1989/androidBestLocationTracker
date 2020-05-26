@@ -1,6 +1,6 @@
 # androidBestLocationTracker
 Get best available locaiton from android locaiton providers 
-android-location-tracker<p align="center">
+
 <kbd>
 <img src="https://3c1703fe8d.site.internapcdn.net/newman/gfx/news/hires/2018/location.jpg" alt="Live Location Sharing" width="300">
 </kbd>
