@@ -15,4 +15,5 @@ interface BaseLocationStrategy {
     val lastLocation: Location?
     fun initLocationClient()
     fun startLocationUpdates()
+    fun fetchLocationInBackground(enable: Boolean)
 }

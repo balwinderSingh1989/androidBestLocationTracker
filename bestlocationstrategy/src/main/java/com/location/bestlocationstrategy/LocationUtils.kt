@@ -9,7 +9,6 @@ import android.provider.Settings.SettingNotFoundException
 import android.util.Log
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
-import com.location.bestlocationstrategy.GooglePlayServiceLocationStrategy.Companion.getInstance
 
 /**
  * Created by Balwinder on 20/Sept/2018.
@@ -35,7 +34,7 @@ object LocationUtils {
     }
 
     /**
-     * GEt best location stratergy available .
+     * GEt best location strategy available .
      *
      * @param ctx
      * @return
@@ -43,7 +42,7 @@ object LocationUtils {
     fun getLocationStatergy(ctx: Context?): BaseLocationStrategy? {
         return if (isGooglePlayServicesAvailable(ctx)) {
             //GooglePlayServiceLocationStrategy
-            GooglePlayServiceLocationStrategy getInstance(ctx)
+            GooglePlayServiceLocationStrategy.getInstance(ctx)
         } else {
             //LocationManagerStrategy
             LocationManagerStrategy.getInstance(ctx!!)

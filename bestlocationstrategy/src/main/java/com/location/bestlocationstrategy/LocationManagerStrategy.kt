@@ -60,10 +60,10 @@ class LocationManagerStrategy(private val mAppContext: Context) : BaseLocationSt
         }
 
     private val bestProvider: String
-        private get() {
+        get() {
             val criteria = Criteria()
             criteria.accuracy = Criteria.ACCURACY_HIGH
-            return mLocationManager!!.getBestProvider(criteria, false)
+            return mLocationManager!!.getBestProvider(criteria, false)!!
         }
 
     override fun initLocationClient() {
