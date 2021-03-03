@@ -16,7 +16,7 @@ import com.google.android.gms.common.GoogleApiAvailability
 object LocationUtils {
     private const val TWO_MINUTES = 1000 * 60 * 2
     private const val TAG = "LocationUtils"
-    var LastKnownLocaiton: Location? = null
+    private  var LastKnownLocaiton: Location? = null
 
     /**
      * Return the availability of GooglePlayServices

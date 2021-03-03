@@ -46,7 +46,7 @@ class LocationManagerStrategy(private val mAppContext: Context) : BaseLocationSt
         DISPLACEMENT = displacement
     }
 
-    override val lastLocation: Location?
+    override val getLatestLocation: Location?
         get() {
             if (mLastLocation == null) {
                 mLastLocation = try {
@@ -55,7 +55,6 @@ class LocationManagerStrategy(private val mAppContext: Context) : BaseLocationSt
                     return null
                 }
             }
-            LocationUtils.LastKnownLocaiton = mLastLocation
             return mLastLocation
         }
 
@@ -98,7 +97,7 @@ class LocationManagerStrategy(private val mAppContext: Context) : BaseLocationSt
     override fun onLocationChanged(location: Location) {
         mLastLocation = location
         if (mLastLocation != null && mLocationListener != null && LocationUtils.isBetterLocation(location)) {
-            mLocationListener!!.onLocationChanged(location)
+            mLocationListener!!.onBetterLocationAvailable(location)
         }
         if (!mUpdatePeriodically) {
             stopListeningForLocationChanges()

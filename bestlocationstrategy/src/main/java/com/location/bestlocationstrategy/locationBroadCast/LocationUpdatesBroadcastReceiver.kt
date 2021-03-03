@@ -37,7 +37,7 @@ class LocationUpdatesBroadcastReceiver constructor(private val locationListener:
             LocationResult.extractResult(intent)?.let { locationResult ->
                 val locations = locationResult.locations.map { location ->
 
-                    locationListener?.onLocationChanged(location)
+                    locationListener?.onBetterLocationAvailable(location)
                 }
 
             }

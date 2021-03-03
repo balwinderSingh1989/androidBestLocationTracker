@@ -3,15 +3,19 @@ package com.location.bestlocationstrategy
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.PendingIntent
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.location.Location
+import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.google.android.gms.location.*
 import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
 import com.google.android.gms.tasks.CancellationTokenSource
+import com.location.bestlocationstrategy.foregroundservice.ForegroundOnlyLocationService
 import com.location.bestlocationstrategy.locationBroadCast.LocationUpdatesBroadcastReceiver
 import extension.TAG
 import extension.hasPermission
@@ -21,56 +25,53 @@ import java.util.concurrent.TimeUnit
 /**
  * Created by Balwinder on 1/29/20
  */
-class GooglePlayServiceLocationStrategy(private val mAppContext: Context?) : BaseLocationStrategy {
+class GooglePlayServiceLocationStrategy(private val mAppContext: Context) : BaseLocationStrategy {
 
-    private lateinit var mLocationCallback: LocationCallback
+    private var mLocationCallback: LocationCallback? = null
     private var mLastLocation: Location? = null
     private var mLocationListener: LocationChangesListener? = null
     private var mUpdatePeriodically = false
     private var mLocationRequest: LocationRequest? = null
     private var fetchBackgroundLocation: Boolean = false
 
-    // Allows class to cancel the location request if it exits the activity.
+
+    // Provides location updates for while-in-use feature for Q and above
+    private var foregroundOnlyLocationService: ForegroundOnlyLocationService? = null
+    private var foregroundOnlyLocationServiceBound = false
+
+
+    // Allows class to cancel the location request if it exits.
     // Typically, you use one cancellation source per lifecycle.
     private var cancellationTokenSource = CancellationTokenSource()
 
 
-    override fun startListeningForLocationChanges(locationListener: LocationChangesListener?) {
-        mLocationListener = locationListener
+    // Monitors connection to the while-in-use service.
+    private val foregroundOnlyServiceConnection = object : ServiceConnection {
+
+        override fun onServiceConnected(name: ComponentName, service: IBinder) {
+            val binder = service as ForegroundOnlyLocationService.LocalBinder
+            foregroundOnlyLocationService = binder.service
+            foregroundOnlyLocationServiceBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            foregroundOnlyLocationService = null
+            foregroundOnlyLocationServiceBound = false
+        }
     }
 
-    /* Creates default PendingIntent for location changes.
-    *
-    * FOR GETTING LOCATIONS IN BACKGROUND. FOR ANDROID 10 and above use foregrround service instead
-    * Note: We use a BroadcastReceiver because on API level 26 and above (Oreo+), Android places
-    * limits on Services.
-    */
+    /** Creates default PendingIntent for location changes.
+     *
+     * FOR GETTING LOCATIONS IN BACKGROUND. FOR ANDROID 10 and above use foregrround service instead
+     * Note: We use a BroadcastReceiver because on API level 26 and above (Oreo+), Android places
+     * limits on Services.
+     */
     private val locationUpdatePendingIntent: PendingIntent by lazy {
         val locationUpdatesBroadcastReceiver = LocationUpdatesBroadcastReceiver(mLocationListener)
-
         val intent = Intent(mAppContext, locationUpdatesBroadcastReceiver.javaClass)
-
         intent.action = ACTION_PROCESS_UPDATES
         PendingIntent.getBroadcast(mAppContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
     }
-
-    override fun stopListeningForLocationChanges() {
-        mLocationListener = null
-        if (mUpdatePeriodically) stopLocationUpdates()
-    }
-
-    override fun setPeriodicalUpdateEnabled(enable: Boolean) {
-        mUpdatePeriodically = enable
-    }
-
-    override fun setPeriodicalUpdateTime(time: Long) {
-        UPDATE_INTERVAL = if (time < FASTEST_INTERVAL) FASTEST_INTERVAL else time
-    }
-
-    override fun setDisplacement(displacement: Long) {
-        DISPLACEMENT = displacement
-    }
-
 
     /**
      * Provides a simple way of getting a device's location and is well suited for
@@ -81,31 +82,46 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context?) : Bas
      * Note: this method should be called after location permission has been granted.
      */
     @get:SuppressLint("MissingPermission")
-    override val lastLocation: Location?
+    override val getLatestLocation: Location?
         get() {
-            if (mLastLocation == null) {
+            mFusedLocationClient?.let {
+                //Try to fetch current location first
+                it.getCurrentLocation(PRIORITY_HIGH_ACCURACY, cancellationTokenSource.token)
 
-                mFusedLocationClient?.let {
-                    //Try to fetch current location first
-                    it.getCurrentLocation(PRIORITY_HIGH_ACCURACY, cancellationTokenSource.token)
-                            .addOnCompleteListener { taskLocation ->
-                                if (taskLocation.isSuccessful && taskLocation.result != null) {
-                                    onLocationChanged(taskLocation.result)
+                        .addOnCompleteListener { taskLocation ->
 
-                                } else {
+                            if (taskLocation.isSuccessful && taskLocation.result != null) {
 
+                                onLocationChanged(taskLocation.result)
 
-                                    Log.w("TAG", "getLastLocation:exception", taskLocation.exception)
-                                    LocationManagerStrategy.getInstance(mAppContext!!)?.lastLocation
+                            } else {
+                                Log.e(TAG, "  getLatestLocation ->current location :exception", taskLocation.exception)
+                                //current location is not available...try to get last known location
+                                it.lastLocation.addOnCompleteListener { taskLastLocation ->
+                                    if (taskLastLocation.isSuccessful && taskLastLocation.result != null) {
+                                        onLocationChanged(taskLastLocation.result)
+                                    } else {
+                                        Log.e(TAG, "  getLatestLocation ->last location :exception", taskLastLocation.exception)
+                                        if (mLastLocation == null) {
+                                            LocationManagerStrategy.getInstance(mAppContext)?.getLatestLocation?.let { location ->
+                                                onLocationChanged(location)
+                                            }
+                                        }
+                                    }
                                 }
                             }
+                        }
 
 
-                } ?: let {
-                    LocationManagerStrategy.getInstance(mAppContext!!)?.lastLocation
+            } ?: let {
+
+                if (mLastLocation == null) {
+
+                    LocationManagerStrategy.getInstance(mAppContext)?.getLatestLocation?.let { location ->
+                        onLocationChanged(location)
+                    }
                 }
             }
-            LocationUtils.LastKnownLocaiton = mLastLocation
             return mLastLocation
         }
 
@@ -117,7 +133,7 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context?) : Bas
 
     @Synchronized
     private fun buildFusedLocationProvider(): FusedLocationProviderClient? {
-        return mAppContext?.let {
+        return mAppContext.let {
             LocationServices.getFusedLocationProviderClient(it)
         }
     }
@@ -125,7 +141,7 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context?) : Bas
     @SuppressLint("MissingPermission")
     private fun onConnected() {
         mFusedLocationClient?.let {
-            mLastLocation = lastLocation
+            mLastLocation = getLatestLocation
             if (mUpdatePeriodically) {
                 startLocationUpdates()
             }
@@ -136,21 +152,39 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context?) : Bas
 
     @SuppressLint("MissingPermission")
     override fun startLocationUpdates() {
-        mAppContext?.let {
+        if (fetchBackgroundLocation && mAppContext.hasPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
 
-            if (fetchBackgroundLocation && it.hasPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
-                getBackgroundLocation()
+            getBackgroundLocation()
+
+        } else {
+
+            if (fetchBackgroundLocation) {
+                //permission not granted
+                mLocationListener?.onFailure("Missing permission android.permission.ACCESS_BACKGROUND_LOCATION " +
+                        "to fetch location in background")
+
+                /**
+                 * On Android 11 (API level 30) and higher, however, the system dialog doesn't include the Allow all the time option.
+                 * Instead, users must enable background location on a settings page, as shown in figure 3.
+                 *
+                 */
             } else {
+                //fetch location updates
                 if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
-
-
+                    if (mAppContext.hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ||
+                            mAppContext.hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                        startLocationUpdatesForBelowQ()
+                    } else {
+                        mLocationListener?.onFailure("Missing permission  android.permission.ACCESS_COARSE_LOCATION or " +
+                                "android.permission.ACCESS_FINE_LOCATION to fetch location updates")
+                    }
                 } else {
                     //if API is 10 and above use foreground service
                     //https://codelabs.developers.google.com/codelabs/while-in-use-location/index.html?index=..%2F..index#6
                 }
             }
-
         }
+
 
     }
 
@@ -199,15 +233,6 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context?) : Bas
      */
     private fun createLocationRequest(): LocationRequest {
         return LocationRequest().apply {
-
-            // Sets the desired interval for active location updates. This interval is inexact. You
-            // may not receive updates at all if no location sources are available, or you may
-            // receive them slower than requested. You may also receive updates faster than
-            // requested if other applications are requesting location at a faster interval.
-            //
-            // IMPORTANT NOTE: Apps running on "O" devices (regardless of targetSdkVersion) may
-            // receive updates less frequently than this interval when the app is no longer in the
-            // foreground.
             interval = UPDATE_INTERVAL
 
             // Sets the fastest rate for active location updates. This interval is exact, and your
@@ -219,6 +244,7 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context?) : Bas
             maxWaitTime = TimeUnit.MINUTES.toMillis(2)
 
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+
             smallestDisplacement = DISPLACEMENT.toFloat() // 10 meters
         }
     }
@@ -229,6 +255,10 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context?) : Bas
     private fun stopLocationUpdates() {
         cancellationTokenSource.cancel()
         mFusedLocationClient?.removeLocationUpdates(locationUpdatePendingIntent)
+        mLocationCallback?.let {
+            mFusedLocationClient?.removeLocationUpdates(mLocationCallback)
+        }
+
     }
 
     //TODO call from onreceive.
@@ -237,23 +267,36 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context?) : Bas
             stopLocationUpdates()
         }
         mLastLocation = location
-        if (mLocationListener != null) mLocationListener!!.onLocationChanged(location)
+        mLocationListener?.let {
+            if (LocationUtils.isBetterLocation(location))
+                it.onBetterLocationAvailable(location)
+
+        }
     }
 
 
-    /* Requests location updates from the FusedLocationApi. Note: we don't call this unless location
-    * runtime permission has been granted.
-    */
     /**
      * Requests location updates from the FusedLocationApi. Note: we don't call this unless location
      * runtime permission has been granted.
      */
-    @SuppressLint("MissingPermission")
+    @RequiresPermission(anyOf = ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"])
     private fun startLocationUpdatesForBelowQ() {
         Log.i(TAG, "All location settings are satisfied.")
+        createLocationCallback()
         mFusedLocationClient?.requestLocationUpdates(mLocationRequest,
                 mLocationCallback, Looper.myLooper())
 
+    }
+
+    /**
+     * Android 10 and 11 give users more control over their apps' access to their device locations.
+     * When an app running on Android 11 requests location access, users have four options:
+     *  1. Allow all the time
+     *  2. Allow only while using the app (in Android 10)
+     *  3. One time only (in Android 11)
+     *  4. Deny
+     */
+    private fun startLocationUpadtesforQandAbove() {
 
     }
 
@@ -268,6 +311,28 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context?) : Bas
 
             }
         }
+    }
+
+
+    override fun stopListeningForLocationChanges() {
+        mLocationListener = null
+        if (mUpdatePeriodically) stopLocationUpdates()
+    }
+
+    override fun setPeriodicalUpdateEnabled(enable: Boolean) {
+        mUpdatePeriodically = enable
+    }
+
+    override fun setPeriodicalUpdateTime(time: Long) {
+        UPDATE_INTERVAL = if (time < FASTEST_INTERVAL) FASTEST_INTERVAL else time
+    }
+
+    override fun setDisplacement(displacement: Long) {
+        DISPLACEMENT = displacement
+    }
+
+    override fun startListeningForLocationChanges(locationListener: LocationChangesListener?) {
+        mLocationListener = locationListener
     }
 
     companion object {
@@ -285,7 +350,7 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context?) : Bas
         private var DISPLACEMENT: Long = 10 // 10 meters
 
         @JvmStatic
-        fun getInstance(context: Context?): BaseLocationStrategy? {
+        fun getInstance(context: Context): BaseLocationStrategy? {
             if (INSTANCE == null) {
                 INSTANCE = GooglePlayServiceLocationStrategy(context)
                 INSTANCE!!.initLocationClient()
