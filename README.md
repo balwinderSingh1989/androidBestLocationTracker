@@ -92,7 +92,7 @@ if (    ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_L
 
 ```
 
-And it's done, as soon as a location has been found, it will call the `onLocationChanged()` method and you can do the job.
+And it's done, as soon as a location gets available, it will call the `onLocationChanged()` with latest and best available locaition.
 Also, to get lastKnown location any time (this should only we called if )
 
 ```java
