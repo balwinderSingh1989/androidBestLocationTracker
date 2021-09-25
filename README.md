@@ -1,6 +1,8 @@
 # androidBestLocationTracker
 Get best available locaiton from android locaiton providers 
 
+PS : USE this only for android API below 10 as location policies have been changes in android for latest API level. I am currently working to support higher API level. You can see the progress at development branch . :) 
+
 <kbd>
 <img src="https://3c1703fe8d.site.internapcdn.net/newman/gfx/news/hires/2018/location.jpg" alt="Live Location Sharing" width="300">
 </kbd>
