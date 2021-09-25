@@ -39,10 +39,10 @@ object LocationUtils {
      * @param ctx
      * @return
      */
-    fun getLocationStatergy(ctx: Context?): BaseLocationStrategy? {
+    fun getLocationStatergy(ctx: Context? , activity: Activity?): BaseLocationStrategy? {
         return if (isGooglePlayServicesAvailable(ctx)) {
             //GooglePlayServiceLocationStrategy
-            GooglePlayServiceLocationStrategy.getInstance(ctx)
+            GooglePlayServiceLocationStrategy.getInstance(ctx!!,activity)
         } else {
             //LocationManagerStrategy
             LocationManagerStrategy.getInstance(ctx!!)

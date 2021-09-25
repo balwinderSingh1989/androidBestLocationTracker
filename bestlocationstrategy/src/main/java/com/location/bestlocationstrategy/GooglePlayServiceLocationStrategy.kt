@@ -1,7 +1,22 @@
+/*
+ * Copyright © 2021 Balwinder Singh (https://github.com/balwinderSingh1989)
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.location.bestlocationstrategy
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
@@ -25,14 +40,21 @@ import java.util.concurrent.TimeUnit
 /**
  * Created by Balwinder on 1/29/20
  */
-class GooglePlayServiceLocationStrategy(private val mAppContext: Context) : BaseLocationStrategy {
+class GooglePlayServiceLocationStrategy(
+    private val mAppContext: Context,
+    private val activity: Activity?
+) : BaseLocationStrategy {
 
     private var mLocationCallback: LocationCallback? = null
     private var mLastLocation: Location? = null
     private var mLocationListener: LocationChangesListener? = null
     private var mUpdatePeriodically = false
     private var mLocationRequest: LocationRequest? = null
-    private var fetchBackgroundLocation: Boolean = false
+
+    /**
+     * fetch background location for below Q
+     */
+    private var fetchBackgroundLocationBelowQ: Boolean = false
 
 
     // Provides location updates for while-in-use feature for Q and above
@@ -88,29 +110,37 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context) : Base
                 //Try to fetch current location first
                 it.getCurrentLocation(PRIORITY_HIGH_ACCURACY, cancellationTokenSource.token)
 
-                        .addOnCompleteListener { taskLocation ->
+                    .addOnCompleteListener { taskLocation ->
 
-                            if (taskLocation.isSuccessful && taskLocation.result != null) {
+                        if (taskLocation.isSuccessful && taskLocation.result != null) {
 
-                                onLocationChanged(taskLocation.result)
+                            onLocationChanged(taskLocation.result)
 
-                            } else {
-                                Log.e(TAG, "  getLatestLocation ->current location :exception", taskLocation.exception)
-                                //current location is not available...try to get last known location
-                                it.lastLocation.addOnCompleteListener { taskLastLocation ->
-                                    if (taskLastLocation.isSuccessful && taskLastLocation.result != null) {
-                                        onLocationChanged(taskLastLocation.result)
-                                    } else {
-                                        Log.e(TAG, "  getLatestLocation ->last location :exception", taskLastLocation.exception)
-                                        if (mLastLocation == null) {
-                                            LocationManagerStrategy.getInstance(mAppContext)?.getLatestLocation?.let { location ->
-                                                onLocationChanged(location)
-                                            }
+                        } else {
+                            Log.e(
+                                TAG,
+                                "  getLatestLocation ->current location :exception",
+                                taskLocation.exception
+                            )
+                            //current location is not available...try to get last known location
+                            it.lastLocation.addOnCompleteListener { taskLastLocation ->
+                                if (taskLastLocation.isSuccessful && taskLastLocation.result != null) {
+                                    onLocationChanged(taskLastLocation.result)
+                                } else {
+                                    Log.e(
+                                        TAG,
+                                        "  getLatestLocation ->last location :exception",
+                                        taskLastLocation.exception
+                                    )
+                                    if (mLastLocation == null) {
+                                        LocationManagerStrategy.getInstance(mAppContext)?.getLatestLocation?.let { location ->
+                                            onLocationChanged(location)
                                         }
                                     }
                                 }
                             }
                         }
+                    }
 
 
             } ?: let {
@@ -150,62 +180,131 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context) : Base
     }
 
 
+    /**
+     *  Only request Background Location Access if your app has been granted with Foreground Location Access.
+     *  If you try to request Foreground and Background Location Access at the same time (i.e., call requestPermissions
+     *  API with an array contains ACCESS_FINE_LOCATION and ACCESS_BACKGROUND_LOCATION),
+     *  the Android OS will ignore this request and neither permission will be granted.
+     *
+     */
     @SuppressLint("MissingPermission")
-    override fun startLocationUpdates() {
-        if (fetchBackgroundLocation && mAppContext.hasPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
+    @RequiresPermission(
+        anyOf = ["android.permission.ACCESS_BACKGROUND_LOCATION"
+        ]
+    )
+    override fun getBackGroundLocationQandAbove() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
 
-            getBackgroundLocation()
-
-        } else {
-
-            if (fetchBackgroundLocation) {
-                //permission not granted
-                mLocationListener?.onFailure("Missing permission android.permission.ACCESS_BACKGROUND_LOCATION " +
-                        "to fetch location in background")
-
+            //Android 10 and above..always check if foreground permission first
+            if (mAppContext.hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ||
+                mAppContext.hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+            ) {
                 /**
-                 * On Android 11 (API level 30) and higher, however, the system dialog doesn't include the Allow all the time option.
+                 * On Android 11 (API level 30) and higher, the system dialog doesn't include the Allow all the time option.
                  * Instead, users must enable background location on a settings page, as shown in figure 3.
                  *
                  */
-            } else {
-                //fetch location updates
-                if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
-                    if (mAppContext.hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ||
-                            mAppContext.hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)) {
-                        startLocationUpdatesForBelowQ()
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+
+                    if (!mAppContext.hasPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
+                        activity?.let {
+                            if (it.shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
+                                //https://developer.android.com/training/location/permissions
+                                //show locaiton setting to get "Allow all time access"
+                                mLocationListener?.onFailure(
+                                    "Missing permission android.permission.ACCESS_BACKGROUND_LOCATION for Q " +
+                                            "launch settings to get background location access and call getBackGroundLocationQandAbove() again"
+                                )
+                            } else {
+                                mLocationListener?.onFailure(
+                                    "Missing permission android.permission.ACCESS_BACKGROUND_LOCATION for Q " +
+                                            "ask for ACCESS_BACKGROUND_LOCATION permission getBackGroundLocationQandAbove() again"
+                                )
+
+                            }
+                        }
                     } else {
-                        mLocationListener?.onFailure("Missing permission  android.permission.ACCESS_COARSE_LOCATION or " +
-                                "android.permission.ACCESS_FINE_LOCATION to fetch location updates")
+                        getBackgroundLocation()
                     }
+
                 } else {
-                    //if API is 10 and above use foreground service
-                    //https://codelabs.developers.google.com/codelabs/while-in-use-location/index.html?index=..%2F..index#6
+
+                    if (mAppContext.hasPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
+                        getBackgroundLocation()
+                    } else {
+                        mLocationListener?.onFailure(
+                            "Missing permission android.permission.ACCESS_BACKGROUND_LOCATION " +
+                                    "to fetch location in background..please prompt the user for android.permission.ACCESS_BACKGROUND_LOCATION and" +
+                                    "call getBackGroundLocationQandAbove() again"
+                        )
+                    }
                 }
+
+
+            } else {
+                mLocationListener?.onFailure(
+                    "To fetch background location for Q and above..first ask foregrund permssion ..." +
+                            "Missing permission  android.permission.ACCESS_COARSE_LOCATION or " +
+                            "android.permission.ACCESS_FINE_LOCATION"
+                )
+            }
+
+        }
+    }
+
+    @RequiresPermission(
+        anyOf = ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"
+        ]
+    )
+    override fun startLocationUpdates() {
+        if (fetchBackgroundLocationBelowQ) {
+            //provides both background and foreground location updates.
+            getBackgroundLocation()
+        } else {
+            //FOREGROUND fetch location updates
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+                if (mAppContext.hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ||
+                    mAppContext.hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                ) {
+                    startLocationUpdatesForBelowQ()
+                } else {
+                    mLocationListener?.onFailure(
+                        "Missing permission  android.permission.ACCESS_COARSE_LOCATION or " +
+                                "android.permission.ACCESS_FINE_LOCATION to fetch location updates"
+                    )
+                }
+            } else {
+                //if API is 10 and above use foreground service
+                //https://codelabs.developers.google.com/codelabs/while-in-use-location/index.html?index=..%2F..index#6
             }
         }
 
-
     }
 
-    override fun fetchLocationInBackground(enable: Boolean) {
-        this.fetchBackgroundLocation = enable
+    override fun fetchLocationInBackgroundBelowQ(enable: Boolean) {
+        this.fetchBackgroundLocationBelowQ = enable
     }
 
     /**
+     * FOR BELOW Q
      * Uses the FusedLocationProvider to start location updates if the correct fine locations are
      * approved.
      *
      * @throws SecurityException if ACCESS_FINE_LOCATION permission is removed before the
      * FusedLocationClient's requestLocationUpdates() has been completed.
      */
-    @RequiresPermission(anyOf = ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_BACKGROUND_LOCATION"])
+    @RequiresPermission(
+        anyOf = ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"
+        ]
+    )
     private fun getBackgroundLocation() {
         try {
             // If the PendingIntent is the same as the last request (which it always is), this
             // request will replace any requestLocationUpdates() called before.
-            mFusedLocationClient?.requestLocationUpdates(mLocationRequest, locationUpdatePendingIntent)
+            mFusedLocationClient?.requestLocationUpdates(
+                mLocationRequest,
+                locationUpdatePendingIntent
+            )
 
         } catch (permissionRevoked: SecurityException) {
             // Exception only occurs if the user revokes the FINE location permission before
@@ -283,8 +382,10 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context) : Base
     private fun startLocationUpdatesForBelowQ() {
         Log.i(TAG, "All location settings are satisfied.")
         createLocationCallback()
-        mFusedLocationClient?.requestLocationUpdates(mLocationRequest,
-                mLocationCallback, Looper.myLooper())
+        mFusedLocationClient?.requestLocationUpdates(
+            mLocationRequest,
+            mLocationCallback, Looper.myLooper()
+        )
 
     }
 
@@ -338,8 +439,8 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context) : Base
     companion object {
 
         const val ACTION_PROCESS_UPDATES =
-                "com.location.bestlocationstrategy." +
-                        "PROCESS_UPDATES"
+            "com.location.bestlocationstrategy." +
+                    "PROCESS_UPDATES"
 
         private var INSTANCE: GooglePlayServiceLocationStrategy? = null
 
@@ -350,9 +451,9 @@ class GooglePlayServiceLocationStrategy(private val mAppContext: Context) : Base
         private var DISPLACEMENT: Long = 10 // 10 meters
 
         @JvmStatic
-        fun getInstance(context: Context): BaseLocationStrategy? {
+        fun getInstance(context: Context, activity: Activity?): BaseLocationStrategy? {
             if (INSTANCE == null) {
-                INSTANCE = GooglePlayServiceLocationStrategy(context)
+                INSTANCE = GooglePlayServiceLocationStrategy(context, activity)
                 INSTANCE!!.initLocationClient()
             }
             return INSTANCE

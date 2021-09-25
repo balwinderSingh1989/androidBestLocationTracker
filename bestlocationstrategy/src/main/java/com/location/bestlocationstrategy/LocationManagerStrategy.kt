@@ -94,6 +94,14 @@ class LocationManagerStrategy(private val mAppContext: Context) : BaseLocationSt
         }
     }
 
+    override fun fetchLocationInBackgroundBelowQ(enable: Boolean) {
+     //   TODO("Not yet implemented")
+    }
+
+    override fun getBackGroundLocationQandAbove() {
+       // TODO("Not yet implemented")
+    }
+
     override fun onLocationChanged(location: Location) {
         mLastLocation = location
         if (mLastLocation != null && mLocationListener != null && LocationUtils.isBetterLocation(location)) {

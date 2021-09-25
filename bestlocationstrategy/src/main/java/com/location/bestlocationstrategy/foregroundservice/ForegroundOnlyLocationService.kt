@@ -21,6 +21,9 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.location.bestlocationstrategy.GooglePlayServiceLocationStrategy
+import com.location.bestlocationstrategy.R
+import com.location.bestlocationstrategy.locationBroadCast.LocationUpdatesBroadcastReceiver
 import extension.TAG
 import java.util.concurrent.TimeUnit
 
@@ -111,6 +114,9 @@ class ForegroundOnlyLocationService : Service() {
                     // production app, the Activity would be listening for changes to a database
                     // with new locations, but we are simplifying things a bit to focus on just
                     // learning the location side of things.
+
+
+
                     val intent = Intent(ACTION_FOREGROUND_ONLY_LOCATION_BROADCAST)
                     intent.putExtra(EXTRA_LOCATION, currentLocation)
                     LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
@@ -194,7 +200,6 @@ class ForegroundOnlyLocationService : Service() {
 
     fun subscribeToLocationUpdates() {
         Log.d(TAG, "subscribeToLocationUpdates()")
-
       //  SharedPreferenceUtil.saveLocationTrackingPref(this, true)
 
         // Binding to this service doesn't actually trigger onStartCommand(). That is needed to
@@ -247,8 +252,8 @@ class ForegroundOnlyLocationService : Service() {
         //      4. Build and issue the notification
 
         // 0. Get data
-        val mainNotificationText = location?.toText()
-        val titleText = "App names"
+        val mainNotificationText = "Observing location..."
+        val titleText = getString(R.string.app_name)
 
         // 1. Create Notification Channel for O+ and beyond devices (26+).
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -267,6 +272,8 @@ class ForegroundOnlyLocationService : Service() {
             .bigText(mainNotificationText)
             .setBigContentTitle(titleText)
 
+        // 3. Set up main Intent/Pending Intents for notification.
+       // val launchActivityIntent = Intent(this, MainActivity::class.java)
 
         val cancelIntent = Intent(this, ForegroundOnlyLocationService::class.java)
         cancelIntent.putExtra(EXTRA_CANCEL_LOCATION_TRACKING_FROM_NOTIFICATION, true)
@@ -274,8 +281,8 @@ class ForegroundOnlyLocationService : Service() {
         val servicePendingIntent = PendingIntent.getService(
             this, 0, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT)
 
-        val activityPendingIntent = PendingIntent.getActivity(
-            this, 0, launchActivityIntent, 0)
+//        val activityPendingIntent = PendingIntent.getActivity(
+//            this, 0, launchActivityIntent, 0)
 
         // 4. Build and issue the notification.
         // Notification Channel Id is ignored for Android pre O (26).
@@ -286,9 +293,18 @@ class ForegroundOnlyLocationService : Service() {
             .setStyle(bigTextStyle)
             .setContentTitle(titleText)
             .setContentText(mainNotificationText)
+            .setSmallIcon(R.drawable.common_google_signin_btn_icon_dark)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setOngoing(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+//            .addAction(
+//                R.drawable.common_google_signin_btn_icon_dark, "Launch app",
+//                activityPendingIntent
+//            )
+            .addAction(
+                R.drawable.common_full_open_on_phone,
+                "Cancel",
+                servicePendingIntent
             )
             .build()
     }
