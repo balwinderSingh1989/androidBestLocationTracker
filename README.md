@@ -155,6 +155,8 @@ protected void onResume() {
 }
 ```
 
+PS : i'm updaring this lib for kotlin support and incorporating latest android location guidlines..you can refer to development branch for work in progress.
+
 ### Contact & Questions
 
 If you have any questions, fell free to send me an email at er.vicky1989@gmail.com
