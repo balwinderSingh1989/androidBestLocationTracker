@@ -6,11 +6,13 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
+import androidx.lifecycle.Lifecycle
 
 /**
  * Created by Balwinder on 20/Sept/2018.
  */
-class LocationManagerStrategy(private val mAppContext: Context) : BaseLocationStrategy, LocationListener {
+class LocationManagerStrategy(private val mAppContext: Context) : BaseLocationStrategy,
+    LocationListener {
     private var mLocationManager: LocationManager? = null
     private var mLastLocation: Location? = null
     private var mLocationListener: LocationChangesListener? = null
@@ -65,7 +67,8 @@ class LocationManagerStrategy(private val mAppContext: Context) : BaseLocationSt
             return mLocationManager!!.getBestProvider(criteria, false)!!
         }
 
-    override fun initLocationClient() {
+
+    fun initLocationClient() {
         mLocationManager = mAppContext.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     }
 
@@ -74,19 +77,24 @@ class LocationManagerStrategy(private val mAppContext: Context) : BaseLocationSt
             // getting GPS status
             isGPSEnabled = mLocationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER)!!
             // getting network status
-            isNetworkEnabled = mLocationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER)!!
+            isNetworkEnabled =
+                mLocationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER)!!
 
 
             if (isNetworkEnabled) {
-                mLocationManager!!.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
-                        UPDATE_INTERVAL,
-                        DISPLACEMENT.toFloat(), this)
+                mLocationManager!!.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER,
+                    UPDATE_INTERVAL,
+                    DISPLACEMENT.toFloat(), this
+                )
             }
 
             if (isGPSEnabled) {
-                mLocationManager!!.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                        UPDATE_INTERVAL,
-                        DISPLACEMENT.toFloat(), this)
+                mLocationManager!!.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    UPDATE_INTERVAL,
+                    DISPLACEMENT.toFloat(), this
+                )
             }
 
         } catch (ex: SecurityException) {
@@ -94,17 +102,21 @@ class LocationManagerStrategy(private val mAppContext: Context) : BaseLocationSt
         }
     }
 
-    override fun fetchLocationInBackgroundBelowQ(enable: Boolean) {
-     //   TODO("Not yet implemented")
+    override fun shouldFetchWhenInBackground(fetchAggresively: Boolean, lifecycle: Lifecycle?) {
+        //   TODO("Not yet implemented")
     }
 
-    override fun getBackGroundLocationQandAbove() {
-       // TODO("Not yet implemented")
+    override fun backgroundLocationPermissionGranted() {
+        TODO("Not yet implemented")
     }
+
 
     override fun onLocationChanged(location: Location) {
         mLastLocation = location
-        if (mLastLocation != null && mLocationListener != null && LocationUtils.isBetterLocation(location)) {
+        if (mLastLocation != null && mLocationListener != null && LocationUtils.isBetterLocation(
+                location
+            )
+        ) {
             mLocationListener!!.onBetterLocationAvailable(location)
         }
         if (!mUpdatePeriodically) {
@@ -132,6 +144,7 @@ class LocationManagerStrategy(private val mAppContext: Context) : BaseLocationSt
         private const val FASTEST_INTERVAL: Long = 5000 // 5 sec
         private var DISPLACEMENT: Long = 10 // 10 meters
         private const val TAG = "LocationManagerStrategy"
+
         @JvmStatic
         fun getInstance(context: Context): LocationManagerStrategy? {
             if (INSTANCE == null) {

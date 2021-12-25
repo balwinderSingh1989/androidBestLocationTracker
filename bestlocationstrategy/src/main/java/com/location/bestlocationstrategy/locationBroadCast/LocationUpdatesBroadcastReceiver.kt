@@ -3,7 +3,9 @@ package com.location.bestlocationstrategy.locationBroadCast
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.location.LocationListener
 import android.util.Log
+import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.location.bestlocationstrategy.LocationChangesListener
 import extension.TAG
@@ -22,12 +24,20 @@ import extension.TAG
  *  {@link com.google.android.gms.location.LocationRequest} when the app is no longer in the
  *  foreground.
  */
-class LocationUpdatesBroadcastReceiver constructor(private val locationListener: LocationChangesListener?) : BroadcastReceiver() {
+class LocationUpdatesBroadcastReceiver constructor() : BroadcastReceiver() {
+
+    //lateinit var locationCallback: LocationChangesListener
+
+    constructor(locationListener: LocationChangesListener?) : this() {
+     //   this.locationCallback = locationCallback
+    }
+
 
     companion object {
+        lateinit var locationCallback: LocationChangesListener
         const val ACTION_PROCESS_UPDATES =
-                "com.location.bestlocationstrategy." +
-                        "PROCESS_UPDATES"
+            "com.location.bestlocationstrategy." +
+                    "PROCESS_UPDATES"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -35,9 +45,8 @@ class LocationUpdatesBroadcastReceiver constructor(private val locationListener:
 
         if (intent.action == ACTION_PROCESS_UPDATES) {
             LocationResult.extractResult(intent)?.let { locationResult ->
-                val locations = locationResult.locations.map { location ->
-
-                    locationListener?.onBetterLocationAvailable(location)
+                locationResult.locations.map { location ->
+                    locationCallback?.onBetterLocationAvailable(location)
                 }
 
             }

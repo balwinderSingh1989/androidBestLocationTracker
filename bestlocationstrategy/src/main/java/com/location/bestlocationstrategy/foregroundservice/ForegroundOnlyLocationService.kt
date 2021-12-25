@@ -1,5 +1,6 @@
 package com.location.bestlocationstrategy.foregroundservice
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,6 +8,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
 import android.content.res.Configuration
 import android.location.Location
 import android.os.Binder
@@ -23,7 +25,6 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.location.bestlocationstrategy.GooglePlayServiceLocationStrategy
 import com.location.bestlocationstrategy.R
-import com.location.bestlocationstrategy.locationBroadCast.LocationUpdatesBroadcastReceiver
 import extension.TAG
 import java.util.concurrent.TimeUnit
 
@@ -50,16 +51,8 @@ class ForegroundOnlyLocationService : Service() {
 
     private lateinit var notificationManager: NotificationManager
 
-    // TODO: Step 1.1, Review variables (no changes).
-    // FusedLocationProviderClient - Main class for receiving location updates.
-    private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
+    private lateinit var stopLocation: () -> Unit
 
-    // LocationRequest - Requirements for the location updates, i.e., how often you should receive
-    // updates, the priority, etc.
-    private lateinit var locationRequest: LocationRequest
-
-    // LocationCallback - Called when FusedLocationProviderClient has a new Location.
-    private lateinit var locationCallback: LocationCallback
 
     // Used only for local storage of the last known location. Usually, this would be saved to your
     // database, but because this is a simplified sample without a full database, we only need the
@@ -71,68 +64,6 @@ class ForegroundOnlyLocationService : Service() {
 
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // TODO: Step 1.2, Review the FusedLocationProviderClient.
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
-
-        // TODO: Step 1.3, Create a LocationRequest.
-        locationRequest = LocationRequest().apply {
-            // Sets the desired interval for active location updates. This interval is inexact. You
-            // may not receive updates at all if no location sources are available, or you may
-            // receive them less frequently than requested. You may also receive updates more
-            // frequently than requested if other applications are requesting location at a more
-            // frequent interval.
-            //
-            // IMPORTANT NOTE: Apps running on Android 8.0 and higher devices (regardless of
-            // targetSdkVersion) may receive updates less frequently than this interval when the app
-            // is no longer in the foreground.
-            interval = TimeUnit.SECONDS.toMillis(60)
-
-            // Sets the fastest rate for active location updates. This interval is exact, and your
-            // application will never receive updates more frequently than this value.
-            fastestInterval = TimeUnit.SECONDS.toMillis(30)
-
-            // Sets the maximum time when batched location updates are delivered. Updates may be
-            // delivered sooner than this interval.
-            maxWaitTime = TimeUnit.MINUTES.toMillis(2)
-
-            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-        }
-
-        // TODO: Step 1.4, Initialize the LocationCallback.
-        locationCallback = object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult?) {
-                super.onLocationResult(locationResult)
-
-                if (locationResult?.lastLocation != null) {
-
-                    // Normally, you want to save a new location to a database. We are simplifying
-                    // things a bit and just saving it as a local variable, as we only need it again
-                    // if a Notification is created (when the user navigates away from app).
-                    currentLocation = locationResult.lastLocation
-
-                    // Notify our Activity that a new location was added. Again, if this was a
-                    // production app, the Activity would be listening for changes to a database
-                    // with new locations, but we are simplifying things a bit to focus on just
-                    // learning the location side of things.
-
-
-
-                    val intent = Intent(ACTION_FOREGROUND_ONLY_LOCATION_BROADCAST)
-                    intent.putExtra(EXTRA_LOCATION, currentLocation)
-                    LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
-
-                    // Updates notification content if this service is running as a foreground
-                    // service.
-                    if (serviceRunningInForeground) {
-                        notificationManager.notify(
-                            NOTIFICATION_ID,
-                            generateNotification(currentLocation))
-                    }
-                } else {
-                    Log.d(TAG, "Location missing in callback.")
-                }
-            }
-        }
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
@@ -145,10 +76,10 @@ class ForegroundOnlyLocationService : Service() {
             unsubscribeToLocationUpdates()
             stopSelf()
         }
-        // Tells the system not to recreate the service after it's been killed.
         return START_NOT_STICKY
     }
 
+    @SuppressLint("NewApi")
     override fun onBind(intent: Intent): IBinder? {
         Log.d(TAG, "onBind()")
 
@@ -160,6 +91,7 @@ class ForegroundOnlyLocationService : Service() {
         return localBinder
     }
 
+    @SuppressLint("NewApi")
     override fun onRebind(intent: Intent) {
         Log.d(TAG, "onRebind()")
 
@@ -171,6 +103,7 @@ class ForegroundOnlyLocationService : Service() {
         super.onRebind(intent)
     }
 
+    @SuppressLint("NewApi")
     override fun onUnbind(intent: Intent): Boolean {
         Log.d(TAG, "onUnbind()")
 
@@ -178,11 +111,16 @@ class ForegroundOnlyLocationService : Service() {
         // to maintain the 'while-in-use' label.
         // NOTE: If this method is called due to a configuration change in MainActivity,
         // we do nothing.
-        if (!configurationChange ) {
+        if (!configurationChange) {
             Log.d(TAG, "Start foreground service")
             val notification = generateNotification(currentLocation)
-            startForeground(NOTIFICATION_ID, notification)
+            startForeground( NOTIFICATION_ID,notification,FOREGROUND_SERVICE_TYPE_LOCATION)
             serviceRunningInForeground = true
+
+
+
+            //TODO stop the service here for android API level 31 and above and use work manager instead
+            //https://www.ackee.agency/blog/how-to-fetch-location-in-background-on-android
         }
 
         // Ensures onRebind() is called if MainActivity (client) rebinds.
@@ -198,42 +136,37 @@ class ForegroundOnlyLocationService : Service() {
         configurationChange = true
     }
 
-    fun subscribeToLocationUpdates() {
+    fun subscribeToLocationUpdates(
+        requestLocationUpdated: () -> Unit,
+        stopLocation: () -> Unit
+    ) {
         Log.d(TAG, "subscribeToLocationUpdates()")
-      //  SharedPreferenceUtil.saveLocationTrackingPref(this, true)
-
+        this.stopLocation = stopLocation
         // Binding to this service doesn't actually trigger onStartCommand(). That is needed to
         // ensure this Service can be promoted to a foreground service, i.e., the service needs to
         // be officially started (which we do here).
         startService(Intent(applicationContext, ForegroundOnlyLocationService::class.java))
 
         try {
-            // TODO: Step 1.5, Subscribe to location changes.
-            fusedLocationProviderClient.requestLocationUpdates(
-                locationRequest, locationCallback, Looper.myLooper())
+
+            this.apply {
+                requestLocationUpdated.invoke()
+            }
+//            // TODO: Step 1.5, Subscribe to location changes.
+//            GooglePlayServiceLocationStrategy.mFusedLocationClient?.requestLocationUpdates(
+//                locationRequest, locationCallback, Looper.myLooper()
+//            )
         } catch (unlikely: SecurityException) {
-          //  SharedPreferenceUtil.saveLocationTrackingPref(this, false)
+            //  SharedPreferenceUtil.saveLocationTrackingPref(this, false)
             Log.e(TAG, "Lost location permissions. Couldn't remove updates. $unlikely")
         }
     }
 
     fun unsubscribeToLocationUpdates() {
         Log.d(TAG, "unsubscribeToLocationUpdates()")
-
         try {
-            // TODO: Step 1.6, Unsubscribe to location changes.
-            val removeTask = fusedLocationProviderClient.removeLocationUpdates(locationCallback)
-            removeTask.addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    Log.d(TAG, "Location Callback removed.")
-                    stopSelf()
-                } else {
-                    Log.d(TAG, "Failed to remove Location Callback.")
-                }
-            }
-          //  SharedPreferenceUtil.saveLocationTrackingPref(this, false)
+            stopLocation.invoke()
         } catch (unlikely: SecurityException) {
-            //SharedPreferenceUtil.saveLocationTrackingPref(this, true)
             Log.e(TAG, "Lost location permissions. Couldn't remove updates. $unlikely")
         }
     }
@@ -259,7 +192,8 @@ class ForegroundOnlyLocationService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
             val notificationChannel = NotificationChannel(
-                NOTIFICATION_CHANNEL_ID, titleText, NotificationManager.IMPORTANCE_DEFAULT)
+                NOTIFICATION_CHANNEL_ID, titleText, NotificationManager.IMPORTANCE_DEFAULT
+            )
 
             // Adds NotificationChannel to system. Attempting to create an
             // existing notification channel with its original values performs
@@ -273,13 +207,14 @@ class ForegroundOnlyLocationService : Service() {
             .setBigContentTitle(titleText)
 
         // 3. Set up main Intent/Pending Intents for notification.
-       // val launchActivityIntent = Intent(this, MainActivity::class.java)
+        // val launchActivityIntent = Intent(this, MainActivity::class.java)
 
         val cancelIntent = Intent(this, ForegroundOnlyLocationService::class.java)
         cancelIntent.putExtra(EXTRA_CANCEL_LOCATION_TRACKING_FROM_NOTIFICATION, true)
 
         val servicePendingIntent = PendingIntent.getService(
-            this, 0, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+            this, 0, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT
+        )
 
 //        val activityPendingIntent = PendingIntent.getActivity(
 //            this, 0, launchActivityIntent, 0)

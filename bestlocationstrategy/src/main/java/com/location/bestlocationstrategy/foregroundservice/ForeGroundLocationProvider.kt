@@ -9,11 +9,20 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import java.util.logging.LogManager
 
-class ForeGroundLocationProvider(private val activity: Activity) : LifecycleObserver {
+class ForeGroundLocationProvider(
+    private val activity: Activity,
+    private var requestLocationUpdate: () -> Unit,
+    private var stopLocation: () -> Unit
+) : LifecycleObserver {
+
+    fun registerLifeCycle(lifecycle: Lifecycle) {
+        lifecycle.addObserver(this)
+    }
+
 
     private var foregroundOnlyLocationServiceBound = false
+
 
     // Provides location updates for while-in-use feature.
     private var foregroundOnlyLocationService: ForegroundOnlyLocationService? = null
@@ -29,12 +38,19 @@ class ForeGroundLocationProvider(private val activity: Activity) : LifecycleObse
             val binder = service as ForegroundOnlyLocationService.LocalBinder
             foregroundOnlyLocationService = binder.service
             foregroundOnlyLocationServiceBound = true
+            subscribeLocation()
 
         }
 
         override fun onServiceDisconnected(name: ComponentName) {
             foregroundOnlyLocationService = null
             foregroundOnlyLocationServiceBound = false
+        }
+    }
+
+    fun subscribeLocation(){
+        foregroundOnlyLocationService?.let {
+            it.subscribeToLocationUpdates(requestLocationUpdate,stopLocation)
         }
     }
 
@@ -53,6 +69,7 @@ class ForeGroundLocationProvider(private val activity: Activity) : LifecycleObse
             foregroundOnlyServiceConnection,
             Context.BIND_AUTO_CREATE
         )
+
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
@@ -65,16 +82,17 @@ class ForeGroundLocationProvider(private val activity: Activity) : LifecycleObse
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
-     fun onResume() {
+    fun onResume() {
         LocalBroadcastManager.getInstance(activity).registerReceiver(
             foregroundOnlyBroadcastReceiver,
             IntentFilter(
-                ForegroundOnlyLocationService.ACTION_FOREGROUND_ONLY_LOCATION_BROADCAST)
+                ForegroundOnlyLocationService.ACTION_FOREGROUND_ONLY_LOCATION_BROADCAST
+            )
         )
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-     fun onPause() {
+    fun onPause() {
         LocalBroadcastManager.getInstance(activity).unregisterReceiver(
             foregroundOnlyBroadcastReceiver
         )
@@ -91,7 +109,7 @@ class ForeGroundLocationProvider(private val activity: Activity) : LifecycleObse
             )
 
             if (location != null) {
-                 Log.d("Foreground location:" , "${location.toString()}")
+                Log.d("Foreground location:", "${location.toString()}")
             }
         }
     }

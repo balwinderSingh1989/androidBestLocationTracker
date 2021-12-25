@@ -4,15 +4,15 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
 
 android {
-    compileSdkVersion 30
+    compileSdkVersion 31
 
 
 
     defaultConfig {
-        minSdkVersion 15
-        targetSdkVersion 30
+        targetSdkVersion 31
         versionCode 2
         versionName "2.0"
+        compileSdkVersion 31
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
 
@@ -25,10 +25,14 @@ android {
         }
     }
 
+    compileOptions {
+        sourceCompatibility 1.8
+        targetCompatibility 1.8
+    }
+
 }
 
 dependencies {
     implementation 'com.google.android.gms:play-services-location:17.1.0'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21'
-    implementation 'org.jetbrains.kotlin:kotlin-reflect:1.4.21'
 }
