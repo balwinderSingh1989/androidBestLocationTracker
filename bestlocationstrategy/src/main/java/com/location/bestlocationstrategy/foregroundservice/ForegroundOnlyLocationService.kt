@@ -1,11 +1,7 @@
 package com.location.bestlocationstrategy.foregroundservice
 
 import android.annotation.SuppressLint
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.app.Service
+import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
@@ -14,19 +10,14 @@ import android.location.Location
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
-import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.LocationServices
-import com.location.bestlocationstrategy.GooglePlayServiceLocationStrategy
+import androidx.work.*
 import com.location.bestlocationstrategy.R
 import extension.TAG
+import extension.isApiSandAbove
 import java.util.concurrent.TimeUnit
+
 
 /**
  * Service tracks location when requested and updates Activity via binding. If Activity is
@@ -53,6 +44,8 @@ class ForegroundOnlyLocationService : Service() {
 
     private lateinit var stopLocation: () -> Unit
 
+    private lateinit var requestLocation: () -> Unit
+
 
     // Used only for local storage of the last known location. Usually, this would be saved to your
     // database, but because this is a simplified sample without a full database, we only need the
@@ -61,9 +54,7 @@ class ForegroundOnlyLocationService : Service() {
 
     override fun onCreate() {
         Log.d(TAG, "onCreate()")
-
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
@@ -112,15 +103,27 @@ class ForegroundOnlyLocationService : Service() {
         // NOTE: If this method is called due to a configuration change in MainActivity,
         // we do nothing.
         if (!configurationChange) {
-            Log.d(TAG, "Start foreground service")
-            val notification = generateNotification(currentLocation)
-            startForeground( NOTIFICATION_ID,notification,FOREGROUND_SERVICE_TYPE_LOCATION)
-            serviceRunningInForeground = true
-
-
-
-            //TODO stop the service here for android API level 31 and above and use work manager instead
-            //https://www.ackee.agency/blog/how-to-fetch-location-in-background-on-android
+            if(this.isApiSandAbove()) {
+                Log.d(TAG, "Start work manager")
+                //TODO stop the service here for android API level 31 and above and use work manager instead
+                //https://www.ackee.agency/blog/how-to-fetch-location-in-background-on-android
+                val periodicWork =
+                    PeriodicWorkRequest.Builder(MyWorker::class.java, 15, TimeUnit.MINUTES)
+                        .addTag(TAG)
+                        .build()
+                WorkManager.getInstance().enqueueUniquePeriodicWork(
+                    Companion.TAG,
+                    ExistingPeriodicWorkPolicy.REPLACE,
+                    periodicWork
+                )
+            }
+            else
+            {
+                Log.d(TAG, "Start foreground service")
+                val notification = generateNotification(currentLocation)
+                startForeground(NOTIFICATION_ID, notification, FOREGROUND_SERVICE_TYPE_LOCATION)
+                serviceRunningInForeground = true
+            }
         }
 
         // Ensures onRebind() is called if MainActivity (client) rebinds.
@@ -138,31 +141,29 @@ class ForegroundOnlyLocationService : Service() {
 
     fun subscribeToLocationUpdates(
         requestLocationUpdated: () -> Unit,
+        requestLastLocation: () -> Location?,
         stopLocation: () -> Unit
     ) {
         Log.d(TAG, "subscribeToLocationUpdates()")
         this.stopLocation = stopLocation
+        this.requestLocation = requestLocation
         // Binding to this service doesn't actually trigger onStartCommand(). That is needed to
         // ensure this Service can be promoted to a foreground service, i.e., the service needs to
         // be officially started (which we do here).
         startService(Intent(applicationContext, ForegroundOnlyLocationService::class.java))
 
         try {
-
             this.apply {
+                //invove location change callback
                 requestLocationUpdated.invoke()
             }
-//            // TODO: Step 1.5, Subscribe to location changes.
-//            GooglePlayServiceLocationStrategy.mFusedLocationClient?.requestLocationUpdates(
-//                locationRequest, locationCallback, Looper.myLooper()
-//            )
         } catch (unlikely: SecurityException) {
             //  SharedPreferenceUtil.saveLocationTrackingPref(this, false)
             Log.e(TAG, "Lost location permissions. Couldn't remove updates. $unlikely")
         }
     }
 
-    fun unsubscribeToLocationUpdates() {
+    private fun unsubscribeToLocationUpdates() {
         Log.d(TAG, "unsubscribeToLocationUpdates()")
         try {
             stopLocation.invoke()
@@ -270,4 +271,25 @@ class ForegroundOnlyLocationService : Service() {
 
         private const val NOTIFICATION_CHANNEL_ID = "while_in_use_channel_01"
     }
+
+
+    inner class MyWorker constructor(
+        private val mContext: Context,
+        workerParams: WorkerParameters
+    ) : Worker(
+        mContext, workerParams
+    ) {
+        /**
+         * Callback for changes in location.
+         */
+        @SuppressLint("MissingPermission")
+        override fun doWork(): Result {
+            Log.d(TAG, "doWork: Done")
+            Log.d(TAG, "onStartJob: STARTING JOB..")
+            requestLocation.invoke()
+            return Result.success()
+        }
+
+    }
+
 }

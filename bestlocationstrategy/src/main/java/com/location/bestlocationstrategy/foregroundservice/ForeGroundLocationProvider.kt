@@ -4,32 +4,26 @@ import android.app.Activity
 import android.content.*
 import android.location.Location
 import android.os.IBinder
-import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 
 class ForeGroundLocationProvider(
     private val activity: Activity,
     private var requestLocationUpdate: () -> Unit,
-    private var stopLocation: () -> Unit
+    private var stopLocation: () -> Unit,
+    private var getLastLocation: () -> Location?
 ) : LifecycleObserver {
 
     fun registerLifeCycle(lifecycle: Lifecycle) {
         lifecycle.addObserver(this)
     }
 
-
     private var foregroundOnlyLocationServiceBound = false
-
 
     // Provides location updates for while-in-use feature.
     private var foregroundOnlyLocationService: ForegroundOnlyLocationService? = null
 
-
-    // Listens for location broadcasts from ForegroundOnlyLocationService.
-    private lateinit var foregroundOnlyBroadcastReceiver: ForegroundOnlyBroadcastReceiver
 
     // Monitors connection to the while-in-use service.
     private val foregroundOnlyServiceConnection = object : ServiceConnection {
@@ -39,7 +33,6 @@ class ForeGroundLocationProvider(
             foregroundOnlyLocationService = binder.service
             foregroundOnlyLocationServiceBound = true
             subscribeLocation()
-
         }
 
         override fun onServiceDisconnected(name: ComponentName) {
@@ -48,18 +41,11 @@ class ForeGroundLocationProvider(
         }
     }
 
-    fun subscribeLocation(){
+    fun subscribeLocation() {
         foregroundOnlyLocationService?.let {
-            it.subscribeToLocationUpdates(requestLocationUpdate,stopLocation)
+            it.subscribeToLocationUpdates(requestLocationUpdate, getLastLocation, stopLocation)
         }
     }
-
-    @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
-    fun onCreate() {
-        foregroundOnlyBroadcastReceiver = ForegroundOnlyBroadcastReceiver()
-
-    }
-
 
     @OnLifecycleEvent(Lifecycle.Event.ON_START)
     fun onStart() {
@@ -78,40 +64,7 @@ class ForeGroundLocationProvider(
             activity.unbindService(foregroundOnlyServiceConnection)
             foregroundOnlyLocationServiceBound = false
         }
-
     }
 
-    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
-    fun onResume() {
-        LocalBroadcastManager.getInstance(activity).registerReceiver(
-            foregroundOnlyBroadcastReceiver,
-            IntentFilter(
-                ForegroundOnlyLocationService.ACTION_FOREGROUND_ONLY_LOCATION_BROADCAST
-            )
-        )
-    }
-
-    @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-    fun onPause() {
-        LocalBroadcastManager.getInstance(activity).unregisterReceiver(
-            foregroundOnlyBroadcastReceiver
-        )
-    }
-
-    /**
-     * Receiver for location broadcasts from [ForegroundOnlyLocationService].
-     */
-    private inner class ForegroundOnlyBroadcastReceiver : BroadcastReceiver() {
-
-        override fun onReceive(context: Context, intent: Intent) {
-            val location = intent.getParcelableExtra<Location>(
-                ForegroundOnlyLocationService.EXTRA_LOCATION
-            )
-
-            if (location != null) {
-                Log.d("Foreground location:", "${location.toString()}")
-            }
-        }
-    }
 
 }

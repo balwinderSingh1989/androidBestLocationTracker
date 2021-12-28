@@ -27,6 +27,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import androidx.lifecycle.Lifecycle
+import androidx.work.WorkManager
 import com.google.android.gms.location.*
 import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -293,225 +294,228 @@ internal class GooglePlayServiceLocationStrategy(
                     if (checkIfBackgroundAccessPermissionGranted()) {
                         getBackgroundLocationWithPendingIntent()
                     }
-            }
-        }
-
-    }
-}
-
-private fun getLocationViaForeground() {
-    createLocationCallback()
-    activity?.let { ac ->
-        lifecycle?.let { lifecycle ->
-            ForeGroundLocationProvider(
-                ac,
-                ::getLocationWithCallback,
-                ::stopLocationUpdates
-            ).apply {
-                registerLifeCycle(lifecycle)
+                }
             }
 
         }
-
     }
-}
 
+    private fun getLocationViaForeground() {
+        createLocationCallback()
+        activity?.let { ac ->
+            lifecycle?.let { lifecycle ->
+                ForeGroundLocationProvider(
+                    ac,
+                    ::getLocationWithCallback,
+                    ::stopLocationUpdates,
+                    ::getLatestLocation
+                ).apply {
+                    registerLifeCycle(lifecycle)
+                }
 
-override fun shouldFetchWhenInBackground(fetchAggresively: Boolean, lifecycle: Lifecycle?) {
-    this.backgroundFetchAggresively = fetchAggresively
-    this.lifecycle = lifecycle
-}
-
-@SuppressLint("MissingPermission") //for Android 10 and above
-override fun backgroundLocationPermissionGranted() {
-    if (checkIfBackgroundAccessPermissionGranted()) {
-        if(backgroundFetchAggresively)
-        {
-            //foreground service already started and should not start yielding location for background as well.
-            /**
-             * however, not that for android API 31 and above...foreground services cannot be start from background and hence work manager
-             * should be used
-             *
-             */
+            }
 
         }
-        else {
-            getBackgroundLocationWithPendingIntent()
+    }
+
+
+    override fun shouldFetchWhenInBackground(fetchAggresively: Boolean, lifecycle: Lifecycle?) {
+        this.backgroundFetchAggresively = fetchAggresively
+        this.lifecycle = lifecycle
+    }
+
+    @SuppressLint("MissingPermission") //for Android 10 and above
+    override fun backgroundLocationPermissionGranted() {
+        if (checkIfBackgroundAccessPermissionGranted()) {
+            if (backgroundFetchAggresively) {
+                //foreground service already started and should not start yielding location for background as well.
+                /**
+                 * however, not that for android API 31 and above...foreground services cannot be start from background and hence work manager
+                 * should be used
+                 *
+                 */
+
+            } else {
+                getBackgroundLocationWithPendingIntent()
+            }
         }
     }
-}
 
-/**
- * FOR BELOW Q
- * Uses the FusedLocationProvider to start location updates if the correct fine locations are
- * approved.
- *
- * @throws SecurityException if ACCESS_FINE_LOCATION permission is removed before the
- * FusedLocationClient's requestLocationUpdates() has been completed.
- */
-@RequiresPermission(
-    anyOf = ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"
-    ]
-)
-private fun getBackgroundLocationWithPendingIntent() {
-    try {
-        // If the PendingIntent is the same as the last request (which  always is), this
-        // request will replace any requestLocationUpdates() called before.
+
+    /**
+     * FOR BELOW Q
+     * Uses the FusedLocationProvider to start location updates if the correct fine locations are
+     * approved.
+     *
+     * @throws SecurityException if ACCESS_FINE_LOCATION permission is removed before the
+     * FusedLocationClient's requestLocationUpdates() has been completed.
+     */
+    @RequiresPermission(
+        anyOf = ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"
+        ]
+    )
+    private fun getBackgroundLocationWithPendingIntent() {
+        try {
+            // If the PendingIntent is the same as the last request (which  always is), this
+            // request will replace any requestLocationUpdates() called before.
+            mFusedLocationClient?.requestLocationUpdates(
+                mLocationRequest,
+                locationUpdatePendingIntent
+            )
+
+
+        } catch (permissionRevoked: SecurityException) {
+            // Exception only occurs if the user revokes the FINE location permission before
+            // requestLocationUpdates() is finished executing (very rare).
+            Log.d(TAG, "Location permission revoked; details: $permissionRevoked")
+            throw permissionRevoked
+        } catch (exception: Exception) {
+            Log.d(TAG, "Location permission error; details: ${exception.message}")
+        }
+
+    }
+
+    /**
+     * Sets up the location request. Android has two location request settings:
+     * {@code ACCESS_COARSE_LOCATION} and {@code ACCESS_FINE_LOCATION}. These settings control
+     * the accuracy of the current location. This sample uses ACCESS_FINE_LOCATION, as defined in
+     * the AndroidManifest.xml.
+     * <p/>
+     * When the ACCESS_FINE_LOCATION setting is specified, combined with a fast update
+     * interval (5 seconds), the Fused Location Provider API returns location updates that are
+     * accurate to within a few feet.
+     * <p/>
+     * These settings are appropriate for mapping applications that show real-time location
+     * updates.
+     */
+    @RequiresApi(Build.VERSION_CODES.GINGERBREAD)
+    private fun createLocationRequest(): LocationRequest {
+        return LocationRequest().apply {
+            interval = UPDATE_INTERVAL
+
+            // Sets the fastest rate for active location updates. This interval is exact, and your
+            // application will never receive updates faster than this value.
+            fastestInterval = FASTEST_INTERVAL
+
+            // Sets the maximum time when batched location updates are delivered. Updates may be
+            // delivered sooner than this interval.
+            maxWaitTime = TimeUnit.MINUTES.toMillis(2)
+
+            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+
+            smallestDisplacement = DISPLACEMENT.toFloat() // 10 meters
+        }
+    }
+
+    /**
+     * Stopping location updates
+     */
+    private fun stopLocationUpdates() {
+        cancellationTokenSource.cancel()
+        mFusedLocationClient?.removeLocationUpdates(locationUpdatePendingIntent)
+        mLocationCallback?.let {
+            mFusedLocationClient?.removeLocationUpdates(mLocationCallback)
+        }
+        WorkManager.getInstance().cancelAllWorkByTag(TAG);
+
+    }
+
+    //TODO call from onreceive.
+    private fun onLocationChanged(location: Location) {
+        if (!mUpdatePeriodically) {
+            stopLocationUpdates()
+        }
+        mLastLocation = location
+        mLocationListener?.let {
+            if (LocationUtils.isBetterLocation(location))
+                it.onBetterLocationAvailable(location)
+
+        }
+    }
+
+
+    /**
+     * Requests location updates from the FusedLocationApi. Note: we don't call this unless location
+     * runtime permission has been granted.
+     *
+     *
+     */
+    @RequiresPermission(anyOf = ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"])
+    private fun getLocationWithCallback() {
+        Log.i(TAG, "All location settings are satisfied.")
+        createLocationCallback()
         mFusedLocationClient?.requestLocationUpdates(
             mLocationRequest,
-            locationUpdatePendingIntent
+            mLocationCallback, Looper.myLooper()
         )
 
-
-    } catch (permissionRevoked: SecurityException) {
-        // Exception only occurs if the user revokes the FINE location permission before
-        // requestLocationUpdates() is finished executing (very rare).
-        Log.d(TAG, "Location permission revoked; details: $permissionRevoked")
-        throw permissionRevoked
-    } catch (exception: Exception) {
-        Log.d(TAG, "Location permission error; details: ${exception.message}")
     }
 
-}
 
-/**
- * Sets up the location request. Android has two location request settings:
- * {@code ACCESS_COARSE_LOCATION} and {@code ACCESS_FINE_LOCATION}. These settings control
- * the accuracy of the current location. This sample uses ACCESS_FINE_LOCATION, as defined in
- * the AndroidManifest.xml.
- * <p/>
- * When the ACCESS_FINE_LOCATION setting is specified, combined with a fast update
- * interval (5 seconds), the Fused Location Provider API returns location updates that are
- * accurate to within a few feet.
- * <p/>
- * These settings are appropriate for mapping applications that show real-time location
- * updates.
- */
-@RequiresApi(Build.VERSION_CODES.GINGERBREAD)
-private fun createLocationRequest(): LocationRequest {
-    return LocationRequest().apply {
-        interval = UPDATE_INTERVAL
+    /**
+     * Creates a callback for receiving location events.
+     */
+    private fun createLocationCallback() {
+        mLocationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                super.onLocationResult(locationResult)
+                Log.d(
+                    "Location",
+                    "mLocationCallback onLocationResult  location = " + locationResult
+                )
+                onLocationChanged(locationResult.lastLocation)
 
-        // Sets the fastest rate for active location updates. This interval is exact, and your
-        // application will never receive updates faster than this value.
-        fastestInterval = FASTEST_INTERVAL
-
-        // Sets the maximum time when batched location updates are delivered. Updates may be
-        // delivered sooner than this interval.
-        maxWaitTime = TimeUnit.MINUTES.toMillis(2)
-
-        priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-
-        smallestDisplacement = DISPLACEMENT.toFloat() // 10 meters
-    }
-}
-
-/**
- * Stopping location updates
- */
-private fun stopLocationUpdates() {
-    cancellationTokenSource.cancel()
-    mFusedLocationClient?.removeLocationUpdates(locationUpdatePendingIntent)
-    mLocationCallback?.let {
-        mFusedLocationClient?.removeLocationUpdates(mLocationCallback)
-    }
-
-}
-
-//TODO call from onreceive.
-private fun onLocationChanged(location: Location) {
-    if (!mUpdatePeriodically) {
-        stopLocationUpdates()
-    }
-    mLastLocation = location
-    mLocationListener?.let {
-        if (LocationUtils.isBetterLocation(location))
-            it.onBetterLocationAvailable(location)
-
-    }
-}
-
-
-/**
- * Requests location updates from the FusedLocationApi. Note: we don't call this unless location
- * runtime permission has been granted.
- *
- *
- */
-@RequiresPermission(anyOf = ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"])
-private fun getLocationWithCallback() {
-    Log.i(TAG, "All location settings are satisfied.")
-    createLocationCallback()
-    mFusedLocationClient?.requestLocationUpdates(
-        mLocationRequest,
-        mLocationCallback, Looper.myLooper()
-    )
-
-}
-
-
-/**
- * Creates a callback for receiving location events.
- */
-private fun createLocationCallback() {
-    mLocationCallback = object : LocationCallback() {
-        override fun onLocationResult(locationResult: LocationResult) {
-            super.onLocationResult(locationResult)
-            Log.d(
-                "Location",
-                "mLocationCallback onLocationResult  location = " + locationResult
-            )
-            onLocationChanged(locationResult.lastLocation)
-
+            }
         }
     }
-}
 
 
-override fun stopListeningForLocationChanges() {
-    mLocationListener = null
-    if (mUpdatePeriodically) stopLocationUpdates()
-}
+    override fun stopListeningForLocationChanges() {
+        mLocationListener = null
+        if (mUpdatePeriodically) stopLocationUpdates()
+    }
 
-override fun setPeriodicalUpdateEnabled(enable: Boolean) {
-    mUpdatePeriodically = enable
-}
+    override fun setPeriodicalUpdateEnabled(enable: Boolean) {
+        mUpdatePeriodically = enable
+    }
 
-override fun setPeriodicalUpdateTime(time: Long) {
-    UPDATE_INTERVAL = if (time < FASTEST_INTERVAL) FASTEST_INTERVAL else time
-}
+    override fun setPeriodicalUpdateTime(time: Long) {
+        UPDATE_INTERVAL = if (time < FASTEST_INTERVAL) FASTEST_INTERVAL else time
+    }
 
-override fun setDisplacement(displacement: Long) {
-    DISPLACEMENT = displacement
-}
+    override fun setDisplacement(displacement: Long) {
+        DISPLACEMENT = displacement
+    }
 
-override fun startListeningForLocationChanges(locationListener: LocationChangesListener?) {
-    mLocationListener = locationListener
-}
+    override fun startListeningForLocationChanges(locationListener: LocationChangesListener?) {
+        mLocationListener = locationListener
+    }
 
-companion object {
-
-    const val ACTION_PROCESS_UPDATES =
-        "com.location.bestlocationstrategy.PROCESS_UPDATES"
-
-
-    private var INSTANCE: GooglePlayServiceLocationStrategy? = null
-
-    // Location updates intervals in sec
     var mFusedLocationClient: FusedLocationProviderClient? = null
-    private var UPDATE_INTERVAL: Long = 10000 // 10 sec
-    private const val FASTEST_INTERVAL: Long = 5000 // 5 sec
-    private var DISPLACEMENT: Long = 10 // 10 meters
+    companion object {
 
-    @JvmStatic
-    fun getInstance(context: Context, activity: Activity?): BaseLocationStrategy? {
-        if (INSTANCE == null) {
-            INSTANCE = GooglePlayServiceLocationStrategy(context, activity)
-            INSTANCE!!.initLocationClient()
+        const val ACTION_PROCESS_UPDATES =
+            "com.location.bestlocationstrategy.PROCESS_UPDATES"
+
+        private var INSTANCE: GooglePlayServiceLocationStrategy? = null
+
+        // Location updates intervals in sec
+
+        private var UPDATE_INTERVAL: Long = 10000 // 10 sec
+        private const val FASTEST_INTERVAL: Long = 5000 // 5 sec
+        private var DISPLACEMENT: Long = 10 // 10 meters
+
+        @JvmStatic
+        fun getInstance(context: Context, activity: Activity?): BaseLocationStrategy? {
+            if (INSTANCE == null) {
+                INSTANCE = GooglePlayServiceLocationStrategy(context, activity)
+                INSTANCE!!.initLocationClient()
+            }
+            return INSTANCE
         }
-        return INSTANCE
     }
-}
+
+
 
 
 }

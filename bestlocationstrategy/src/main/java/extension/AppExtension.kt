@@ -28,7 +28,11 @@ fun Context.hasPermission(permission: String): Boolean {
             android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
         return true
     }
-
     return ActivityCompat.checkSelfPermission(this, permission) ==
             PackageManager.PERMISSION_GRANTED
+}
+
+fun Context.isApiSandAbove() : Boolean
+{
+    return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
 }

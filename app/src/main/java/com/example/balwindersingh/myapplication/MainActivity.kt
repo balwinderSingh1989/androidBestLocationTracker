@@ -23,7 +23,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         baseLocationStrategy = getLocationStatergy(this, this)!!
-
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -46,34 +45,26 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnBackgroundLocation.setOnClickListener {
-
             if (ContextCompat.checkSelfPermission(
                     this,
                     Manifest.permission.ACCESS_BACKGROUND_LOCATION
                 ) == PackageManager.PERMISSION_GRANTED
 
             ) {
-
                 baseLocationStrategy?.backgroundLocationPermissionGranted()
             }
             else
             {
-
                 this.requestPermissions(
                     arrayOf(
                         Manifest.permission.ACCESS_BACKGROUND_LOCATION,
                     ), 200
                 )
-
             }
-
         }
     }
 
-
     fun startLocationUpdate() {
-
-
         baseLocationStrategy?.apply {
             setDisplacement(5)
             setPeriodicalUpdateTime(1000)
@@ -93,10 +84,7 @@ class MainActivity : AppCompatActivity() {
                 override fun onConnectionStatusChanged() {}
                 override fun onFailure(s: String?) {}
             })
-
         }
-
         baseLocationStrategy?.startLocationUpdates()
-
     }
 }
