@@ -1,7 +1,7 @@
 # androidBestLocationTracker
 Get best available locaiton from android locaiton providers 
 
-PS : USE this only for android API below 10 as location policies have been changes in android for latest API level. I am currently working to support higher API level. You can see the progress at development branch . :) 
+use latest version 2.0.(That supports background location till android 12 via foreground service or workmanger.)
 
 <kbd>
 <img src="https://3c1703fe8d.site.internapcdn.net/newman/gfx/news/hires/2018/location.jpg" alt="Live Location Sharing" width="300">
@@ -26,7 +26,7 @@ repositories {
 }
 
 dependencies {
-         implementation 'com.github.balwinderSingh1989:androidBestLocationTracker:1.0'
+         implementation 'com.github.balwinderSingh1989:androidBestLocationTracker:Tag'
 }
 ```
 
@@ -36,18 +36,8 @@ Don't forget to add the following permissions to your *AndroidManifest.xml*
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
-```
-
- Be aware of `Android Marshmallow`'s new [permission system](https://developer.android.com/preview/features/runtime-permissions.html)
-
-```xml
-<permission-group
-	android:name="android.permission-group.LOCATION"
-	android:label="A label for your permission"
-	android:description="A description for the permission" />
-
-```
+add below if you need locaton in background for android Q and above. Check out this blog https://www.ackee.agency/blog/how-to-fetch-location-in-background-on-android
+<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
 
 
@@ -61,7 +51,7 @@ To create a tracker you just need to add the below code in your Android Activity
 // Be aware if you target android 23, you'll need to handle the runtime-permissions !
 // see http://developer.android.com/reference/android/support/v4/content/ContextCompat.html
 if (    ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-    && ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+    || ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
         // You need to ask the user to enable the permissions
 } else {
     setupLocation();
