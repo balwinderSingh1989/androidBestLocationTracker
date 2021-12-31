@@ -2,9 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/androidLocationTracking.iml" filepath="$PROJECT_DIR$/androidLocationTracking.iml" />
-      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/bestlocationstrategy/bestlocationstrategy.iml" filepath="$PROJECT_DIR$/bestlocationstrategy/bestlocationstrategy.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/androidBestLocationTracker.iml" filepath="$PROJECT_DIR$/.idea/modules/androidBestLocationTracker.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/androidBestLocationTracker.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/androidBestLocationTracker.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/bestlocationstrategy/androidBestLocationTracker.bestlocationstrategy.iml" filepath="$PROJECT_DIR$/.idea/modules/bestlocationstrategy/androidBestLocationTracker.bestlocationstrategy.iml" />
     </modules>
   </component>
 </project>
