@@ -46,6 +46,12 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
+
+        /**
+         * this is required for android 10 and above and app should ask for ACCESS_BACKGROUND_LOCATION
+         * to fetch location is background.
+         *
+         */
         btnBackgroundLocation.setOnClickListener {
             if (ContextCompat.checkSelfPermission(
                     this,
@@ -53,6 +59,11 @@ class MainActivity : AppCompatActivity() {
                 ) == PackageManager.PERMISSION_GRANTED
 
             ) {
+
+                /**
+                 * inform the library that permission has been granted and can start fetching locaiton in background as well.
+                 *
+                 */
                 baseLocationStrategy?.backgroundLocationPermissionGranted()
             } else {
                 this.requestPermissions(
@@ -69,6 +80,19 @@ class MainActivity : AppCompatActivity() {
             setDisplacement(5)
             setPeriodicalUpdateTime(1000)
             setPeriodicalUpdateEnabled(true)
+
+            /**
+             * fetchAggresively = true would drain more battery as this will launch foregeound service and
+             * would fetch location aggressively (android default is few times in a hour).
+             *
+             * For android API 31 and above workmanger would be used to fetch background location.
+             *
+             *
+             *
+             * lifecycle : lib use this to check if acitivity is in background or not to start foreground or workmanger
+             * make user this is always called from root activity of your applicaiton.
+             *
+             */
 
             shouldFetchWhenInBackground(fetchAggresively = true, lifecycle)
 
