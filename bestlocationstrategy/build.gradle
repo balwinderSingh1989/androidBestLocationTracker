@@ -9,7 +9,7 @@ plugins {
 
 android {
     compileSdkVersion 31
-
+    buildToolsVersion "30.0.2"
 
 
     defaultConfig {
@@ -45,18 +45,19 @@ dependencies {
 }
 
 afterEvaluate {
-    publishing {
-        publications {
-            // Creates a Maven publication called "release".
-            release(MavenPublication) {
-                // Applies the component for the release build variant.
+    if (!plugins.hasPlugin("android")) {
+        publishing {
+            publications {
+                // Creates a Maven publication called "release".
+                release(MavenPublication) {
+                    // Applies the component for the release build variant.
+                    // You can then customize attributes of the publication as shown below.
+                    groupId = 'com.github.balwinderSingh1989'
+                    version = 'v2.0.0'
+                    artifactId "$project.name"
+                }
 
-                // You can then customize attributes of the publication as shown below.
-                groupId = 'com.github.balwinderSingh1989'
-                artifactId = 'final'
-                version = 'v2.0.0'
             }
-
         }
     }
 
