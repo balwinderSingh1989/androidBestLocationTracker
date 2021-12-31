@@ -43,3 +43,21 @@ dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21'
     implementation 'androidx.work:work-runtime:2.0.1'
 }
+
+afterEvaluate {
+    publishing {
+        publications {
+            // Creates a Maven publication called "release".
+            release(MavenPublication) {
+                // Applies the component for the release build variant.
+
+                // You can then customize attributes of the publication as shown below.
+                groupId = 'com.github.balwinderSingh1989'
+                artifactId = 'final'
+                version = 'v2.0.0'
+            }
+
+        }
+    }
+
+}
