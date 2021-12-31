@@ -26,12 +26,6 @@ import extension.TAG
  */
 class LocationUpdatesBroadcastReceiver constructor() : BroadcastReceiver() {
 
-    //lateinit var locationCallback: LocationChangesListener
-
-    constructor(locationListener: LocationChangesListener?) : this() {
-     //   this.locationCallback = locationCallback
-    }
-
 
     companion object {
         lateinit var locationCallback: LocationChangesListener
@@ -46,7 +40,7 @@ class LocationUpdatesBroadcastReceiver constructor() : BroadcastReceiver() {
         if (intent.action == ACTION_PROCESS_UPDATES) {
             LocationResult.extractResult(intent)?.let { locationResult ->
                 locationResult.locations.map { location ->
-                    locationCallback?.onBetterLocationAvailable(location)
+                    locationCallback.onBetterLocationAvailable(location)
                 }
 
             }
