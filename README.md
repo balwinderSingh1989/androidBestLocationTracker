@@ -38,7 +38,7 @@ Don't forget to add the following permissions to your *AndroidManifest.xml*
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 add below if you need locaton in background for android Q and above. Check out this blog https://www.ackee.agency/blog/how-to-fetch-location-in-background-on-android
 <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-
+```
 
 
 ### Use
