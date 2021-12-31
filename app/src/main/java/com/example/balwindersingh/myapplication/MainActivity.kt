@@ -11,6 +11,7 @@ import com.location.bestlocationstrategy.BaseLocationStrategy
 import com.location.bestlocationstrategy.LocationChangesListener
 import com.location.bestlocationstrategy.LocationUtils.getLocationStatergy
 import com.location.bestlocationstrategy.utils.Error
+import extension.TAG
 import kotlinx.android.synthetic.main.activity_main.*
 
 
@@ -75,11 +76,11 @@ class MainActivity : AppCompatActivity() {
 
             startListeningForLocationChanges(object : LocationChangesListener {
                 override fun onBetterLocationAvailable(location: Location?) {
-                    Log.d("Location", "onBetterLocationAvailable  ${location.toString()}")
+                    Log.d(TAG, "onBetterLocationAvailable  ${location.toString()}")
                 }
 
                 override fun onConnected() {
-                    Log.d("Location", "onConnected")
+                    Log.d(TAG, "onConnected")
                 }
 
                 override fun onConnectionStatusChanged() {}

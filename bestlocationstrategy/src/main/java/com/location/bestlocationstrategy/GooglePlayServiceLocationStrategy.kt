@@ -34,6 +34,7 @@ import com.google.android.gms.tasks.CancellationTokenSource
 import com.location.bestlocationstrategy.foregroundservice.ForeGroundLocationProvider
 import com.location.bestlocationstrategy.locationBroadCast.LocationUpdatesBroadcastReceiver
 import com.location.bestlocationstrategy.utils.Error
+import extension.TAG
 import extension.hasPermission
 import java.util.concurrent.TimeUnit
 
@@ -436,7 +437,7 @@ internal class GooglePlayServiceLocationStrategy(
             override fun onLocationResult(locationResult: LocationResult) {
                 super.onLocationResult(locationResult)
                 Log.d(
-                    "Location",
+                    TAG,
                     "mLocationCallback onLocationResult  location = " + locationResult
                 )
                 onLocationChanged(locationResult.lastLocation)
@@ -480,8 +481,6 @@ internal class GooglePlayServiceLocationStrategy(
         private var UPDATE_INTERVAL: Long = 10000 // 10 sec
         private const val FASTEST_INTERVAL: Long = 5000 // 5 sec
         private var DISPLACEMENT: Long = 10 // 10 meters
-
-        const val TAG  = "AndroidBestLocation"
 
         @JvmStatic
         fun getInstance(context: Context, activity: Activity?): BaseLocationStrategy? {
