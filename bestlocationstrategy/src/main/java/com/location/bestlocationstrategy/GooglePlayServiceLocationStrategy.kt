@@ -198,8 +198,6 @@ internal class GooglePlayServiceLocationStrategy(
 
                         activity?.let {
                             if (it.shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
-                                //https://developer.android.com/training/location/permissions
-                                //show locaiton setting to get "Allow all time access"
 
                                 accessBackgroundLocationGranted = false
 
@@ -329,12 +327,6 @@ internal class GooglePlayServiceLocationStrategy(
         if (checkIfBackgroundAccessPermissionGranted()) {
             if (backgroundFetchAggresively) {
                 //foreground service already started and should not start yielding location for background as well.
-                /**
-                 * however, not that for android API 31 and above...foreground services cannot be start from background and hence work manager
-                 * should be used
-                 *
-                 */
-
             } else {
                 getBackgroundLocationWithPendingIntent()
             }

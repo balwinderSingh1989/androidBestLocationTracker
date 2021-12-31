@@ -44,7 +44,7 @@ class ForegroundOnlyLocationService : Service() {
 
     private lateinit var stopLocation: () -> Unit
 
-    private lateinit var requestLocation: () -> Unit
+    private lateinit var requestLocation: () -> Location?
 
 
     // Used only for local storage of the last known location. Usually, this would be saved to your
@@ -146,7 +146,7 @@ class ForegroundOnlyLocationService : Service() {
     ) {
         Log.d(TAG, "subscribeToLocationUpdates()")
         this.stopLocation = stopLocation
-        this.requestLocation = requestLocation
+        this.requestLocation = requestLastLocation
         // Binding to this service doesn't actually trigger onStartCommand(). That is needed to
         // ensure this Service can be promoted to a foreground service, i.e., the service needs to
         // be officially started (which we do here).
@@ -186,7 +186,7 @@ class ForegroundOnlyLocationService : Service() {
         //      4. Build and issue the notification
 
         // 0. Get data
-        val mainNotificationText = "Observing location..."
+        val mainNotificationText = "Observing Location..."
         val titleText = getString(R.string.app_name)
 
         // 1. Create Notification Channel for O+ and beyond devices (26+).
