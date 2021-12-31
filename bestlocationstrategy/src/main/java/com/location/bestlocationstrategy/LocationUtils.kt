@@ -1,5 +1,6 @@
 package com.location.bestlocationstrategy
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.location.Location
@@ -130,6 +131,7 @@ object LocationUtils {
      * @param context
      * @return
      */
+    @SuppressLint("NewApi")
     fun getLocationMode(context: Context): Int {
         return try {
             Settings.Secure.getInt(context.contentResolver, Settings.Secure.LOCATION_MODE)
