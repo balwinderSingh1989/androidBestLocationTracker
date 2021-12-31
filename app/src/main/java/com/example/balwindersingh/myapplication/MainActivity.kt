@@ -18,13 +18,13 @@ import kotlinx.android.synthetic.main.activity_main.*
 class MainActivity : AppCompatActivity() {
 
 
-    lateinit var  baseLocationStrategy : BaseLocationStrategy
+    var baseLocationStrategy: BaseLocationStrategy? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        baseLocationStrategy = getLocationStatergy(this, this)!!
+        baseLocationStrategy = getLocationStatergy(this, this)
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -54,9 +54,7 @@ class MainActivity : AppCompatActivity() {
 
             ) {
                 baseLocationStrategy?.backgroundLocationPermissionGranted()
-            }
-            else
-            {
+            } else {
                 this.requestPermissions(
                     arrayOf(
                         Manifest.permission.ACCESS_BACKGROUND_LOCATION,
@@ -72,7 +70,7 @@ class MainActivity : AppCompatActivity() {
             setPeriodicalUpdateTime(1000)
             setPeriodicalUpdateEnabled(true)
 
-            shouldFetchWhenInBackground(fetchAggresively = true,lifecycle)
+            shouldFetchWhenInBackground(fetchAggresively = true, lifecycle)
 
             startListeningForLocationChanges(object : LocationChangesListener {
                 override fun onBetterLocationAvailable(location: Location?) {
