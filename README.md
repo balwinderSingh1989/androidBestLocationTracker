@@ -1,7 +1,7 @@
 # androidBestLocationTracker
 Get best available locaiton from android locaiton providers 
 
-use latest version 2.0.(That supports background location till android 12 via foreground service or workmanger.)
+use latest version v2.0.(That supports background location till android api 31 via foreground service or workmanger.)
 
 <kbd>
 <img src="https://3c1703fe8d.site.internapcdn.net/newman/gfx/news/hires/2018/location.jpg" alt="Live Location Sharing" width="300">
@@ -36,7 +36,8 @@ Don't forget to add the following permissions to your *AndroidManifest.xml*
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-add below if you need locaton in background for android Q and above. Check out this blog https://www.ackee.agency/blog/how-to-fetch-location-in-background-on-android
+add below if you need locaton in background for android Q and above. Check out this blog
+https://www.ackee.agency/blog/how-to-fetch-location-in-background-on-android
 <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 ```
 
@@ -73,12 +74,18 @@ if (    ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_L
                   shouldFetchWhenInBackground(fetchAggresively = true, lifecycle)
 
                   /**
-                  NOTE : fetchAggresively true if you need location in background faster than android default (which is few times in a hour).
+                  NOTE :SET  fetchAggresively true if you need location in background faster than android default (which is few times in a hour).
                   when this is TRUE : for android API  < 31, location will be fetched by foreground service and for above lib will use workmanger
 
 
                   REMEMBER : You would need permission <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> to fecth location in
                   background for Adnroid 10 and above
+
+
+
+                  lifecycle  = set this to activity as lib would use this lifecycle to bind the foreground service and would start the service once the activity is not visible
+                  (i.e activity is in background)
+
                   **/
 
                   startListeningForLocationChanges(object : LocationChangesListener {
@@ -101,8 +108,9 @@ if (    ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_L
 
 
 
-//also from android 10 and above , we cannot ask foreground and backgeound location at the same time. Hence for background lcoation one should have a proper use case
-and UI option to trigget backgeound location. Once you have decided the use case, you can call below fun to let lib known that ACCESS_BACKGROUND_LOCATION is granted
+//also from android 10 and above , one cannot ask foreground and background location at the same time. Hence for background location one should have a proper use case
+//and UI option to trigger background location. Once you have decided the use case, you can call below fun to let lib known that ACCESS_BACKGROUND_LOCATION is granted, so that
+//lib can start providing you location when your app is in background.
 
      btnStartBackgroundFetch.setOnClickListener {
             if (ContextCompat.checkSelfPermission(
@@ -188,8 +196,6 @@ protected void onResume() {
 	super.onResume();
 }
 ```
-
-PS : i'm updaring this lib for kotlin support and incorporating latest android location guidlines..you can refer to development branch for work in progress.
 
 ### Contact & Questions
 
