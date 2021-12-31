@@ -26,7 +26,7 @@ repositories {
 }
 
 dependencies {
-         implementation 'com.github.balwinderSingh1989:androidBestLocationTracker:Tag'
+         implementation 'com.github.balwinderSingh1989:androidBestLocationTracker:1.0'
 }
 ```
 
