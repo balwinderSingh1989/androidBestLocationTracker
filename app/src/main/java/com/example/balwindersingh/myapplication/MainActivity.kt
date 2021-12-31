@@ -7,23 +7,24 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.example.balwindersingh.myapplication.databinding.ActivityMainBinding
 import com.location.bestlocationstrategy.BaseLocationStrategy
 import com.location.bestlocationstrategy.LocationChangesListener
 import com.location.bestlocationstrategy.LocationUtils.getLocationStatergy
 import com.location.bestlocationstrategy.utils.Error
 import extension.TAG
-import kotlinx.android.synthetic.main.activity_main.*
 
 
 class MainActivity : AppCompatActivity() {
 
 
     var baseLocationStrategy: BaseLocationStrategy? = null
+    lateinit var binding : ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
+       binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
         baseLocationStrategy = getLocationStatergy(this, this)
         if (ContextCompat.checkSelfPermission(
                 this,
@@ -52,7 +53,7 @@ class MainActivity : AppCompatActivity() {
          * to fetch location is background.
          *
          */
-        btnBackgroundLocation.setOnClickListener {
+        binding.btnBackgroundLocation.setOnClickListener {
             if (ContextCompat.checkSelfPermission(
                     this,
                     Manifest.permission.ACCESS_BACKGROUND_LOCATION

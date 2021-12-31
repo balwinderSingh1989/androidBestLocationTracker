@@ -1,11 +1,15 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
-    id 'kotlin-android-extensions'
     id 'kotlin-kapt'
 }
 android {
     compileSdkVersion 31
+
+    buildFeatures {
+        viewBinding true
+    }
+
 
     defaultConfig {
         applicationId "com.example.balwindersingh.myapplication"
