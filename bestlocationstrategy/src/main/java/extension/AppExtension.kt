@@ -6,7 +6,7 @@ import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 
 val Any.TAG : String
-    get() = javaClass.simpleName
+    get() = javaClass.simpleName + " AndroidBestLocation"
 
 /**
  * Returns the runtime Java class of this object.

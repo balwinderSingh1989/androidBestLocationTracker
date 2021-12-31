@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import com.location.bestlocationstrategy.BaseLocationStrategy
 import com.location.bestlocationstrategy.LocationChangesListener
 import com.location.bestlocationstrategy.LocationUtils.getLocationStatergy
+import com.location.bestlocationstrategy.utils.Error
 import kotlinx.android.synthetic.main.activity_main.*
 
 
@@ -82,7 +83,10 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onConnectionStatusChanged() {}
-                override fun onFailure(s: String?) {}
+                override fun onFailure(s: Error) {
+
+
+                }
             })
         }
         baseLocationStrategy?.startLocationUpdates()

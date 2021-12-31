@@ -7,6 +7,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import androidx.lifecycle.Lifecycle
+import com.location.bestlocationstrategy.utils.Error
 
 /**
  * Created by Balwinder on 20/Sept/2018.
@@ -133,7 +134,7 @@ class LocationManagerStrategy(private val mAppContext: Context) : BaseLocationSt
     }
 
     override fun onProviderDisabled(provider: String) {
-        if (mLocationListener != null) mLocationListener!!.onFailure(provider)
+        if (mLocationListener != null) mLocationListener!!.onFailure(Error.PROVIDER_DISABLED)
     }
 
     companion object {

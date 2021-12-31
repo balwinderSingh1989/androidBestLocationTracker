@@ -33,7 +33,7 @@ import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.location.bestlocationstrategy.foregroundservice.ForeGroundLocationProvider
 import com.location.bestlocationstrategy.locationBroadCast.LocationUpdatesBroadcastReceiver
-import extension.TAG
+import com.location.bestlocationstrategy.utils.Error
 import extension.hasPermission
 import java.util.concurrent.TimeUnit
 
@@ -201,18 +201,13 @@ internal class GooglePlayServiceLocationStrategy(
 
                                 accessBackgroundLocationGranted = false
 
-                                mLocationListener?.onFailure(
-                                    "Missing permission android.permission.ACCESS_BACKGROUND_LOCATION for Q " +
-                                            "launch settings to get background location access and call getBackGroundLocationQandAbove() again"
-                                )
+                                mLocationListener?.onFailure( Error.ACCESS_BACKGROUND_LOCATION_MISSING_PERMISSION_LAUNCH_SETTINGS)
                             } else {
 
                                 accessBackgroundLocationGranted = false
 
-                                mLocationListener?.onFailure(
-                                    "Missing permission android.permission.ACCESS_BACKGROUND_LOCATION for Q " +
-                                            "ask for ACCESS_BACKGROUND_LOCATION permission getBackGroundLocationQandAbove() again"
-                                )
+                                mLocationListener?.onFailure( Error.ACCESS_BACKGROUND_LOCATION_MISSING_PERMISSION)
+
 
                             }
                         }
@@ -228,22 +223,14 @@ internal class GooglePlayServiceLocationStrategy(
                         accessBackgroundLocationGranted = true
                     } else {
                         accessBackgroundLocationGranted = false
-                        mLocationListener?.onFailure(
-                            "Missing permission android.permission.ACCESS_BACKGROUND_LOCATION " +
-                                    "to fetch location in background..please prompt the user for android.permission.ACCESS_BACKGROUND_LOCATION and" +
-                                    "call getBackGroundLocationQandAbove() again"
-                        )
+                        mLocationListener?.onFailure( Error.ACCESS_BACKGROUND_LOCATION_MISSING_PERMISSION)
                     }
                 }
 
 
             } else {
                 accessBackgroundLocationGranted = false
-                mLocationListener?.onFailure(
-                    "To fetch background location for Q and above..first ask foregrund permssion ..." +
-                            "Missing permission  android.permission.ACCESS_COARSE_LOCATION or " +
-                            "android.permission.ACCESS_FINE_LOCATION"
-                )
+                mLocationListener?.onFailure( Error.COARSE_OR_FINE_LOCATION_PERMISSION_MISSING)
             }
 
         }
@@ -277,10 +264,7 @@ internal class GooglePlayServiceLocationStrategy(
                 }
 
             } else {
-                mLocationListener?.onFailure(
-                    "Missing permission  android.permission.ACCESS_COARSE_LOCATION or " +
-                            "android.permission.ACCESS_FINE_LOCATION to fetch location updates"
-                )
+                mLocationListener?.onFailure( Error.COARSE_OR_FINE_LOCATION_PERMISSION_MISSING)
             }
         } else {
             if (mAppContext.hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ||
@@ -326,7 +310,7 @@ internal class GooglePlayServiceLocationStrategy(
     override fun backgroundLocationPermissionGranted() {
         if (checkIfBackgroundAccessPermissionGranted()) {
             if (backgroundFetchAggresively) {
-                //foreground service already started and should not start yielding location for background as well.
+                //foreground service already started and should  start yielding location for background as well.
             } else {
                 getBackgroundLocationWithPendingIntent()
             }
@@ -496,6 +480,8 @@ internal class GooglePlayServiceLocationStrategy(
         private var UPDATE_INTERVAL: Long = 10000 // 10 sec
         private const val FASTEST_INTERVAL: Long = 5000 // 5 sec
         private var DISPLACEMENT: Long = 10 // 10 meters
+
+        const val TAG  = "AndroidBestLocation"
 
         @JvmStatic
         fun getInstance(context: Context, activity: Activity?): BaseLocationStrategy? {
