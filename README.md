@@ -26,7 +26,7 @@ repositories {
 }
 
 dependencies {
-         implementation 'com.github.balwinderSingh1989:androidBestLocationTracker:1.0'
+         implementation 'com.github.balwinderSingh1989:androidBestLocationTracker:v2.0'
 }
 ```
 
@@ -56,29 +56,73 @@ if (    ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_L
 } else {
     setupLocation();
 }
+
+ fun onCreate()
+ {
+  baseLocationStrategy = getLocationStatergy(this, this)
+ }
+
   private void setupLocation()
-    {     baseLocationStrategy = LocationUtils.getLocationStatergy(mContext);
-        baseLocationStrategy.setDisplacement(10);
-        baseLocationStrategy.setPeriodicalUpdateTime(10000);
-        baseLocationStrategy.setPeriodicalUpdateEnabled(true);
-        baseLocationStrategy.startListeningForLocationChanges(new LocationChangesListener() {
-            @Override
-            public void onLocationChanged(Location location) {
-                //get best accurate location here on location change
+    {
+
+         baseLocationStrategy?.apply {
+                  setDisplacement(5)
+                  setPeriodicalUpdateTime(1000)
+                  setPeriodicalUpdateEnabled(true)
+
+                  shouldFetchWhenInBackground(fetchAggresively = true, lifecycle)
+
+                  /**
+                  NOTE : fetchAggresively true if you need location in background faster than android default (which is few times in a hour).
+                  when this is TRUE : for android API  < 31, location will be fetched by foreground service and for above lib will use workmanger
+
+
+                  REMEMBER : You would need permission <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> to fecth location in
+                  background for Adnroid 10 and above
+                  **/
+
+                  startListeningForLocationChanges(object : LocationChangesListener {
+                      override fun onBetterLocationAvailable(location: Location?) {
+                          Log.d(TAG, "onBetterLocationAvailable  ${location.toString()}")
+                      }
+
+                      override fun onConnected() {
+                          Log.d(TAG, "onConnected")
+                      }
+
+                      override fun onConnectionStatusChanged() {}
+                      override fun onFailure(s: Error) {
+                         //check error codes here
+
+                      }
+                  })
+                  baseLocationStrategy?.startLocationUpdates()
+  }
+
+
+
+//also from android 10 and above , we cannot ask foreground and backgeound location at the same time. Hence for background lcoation one should have a proper use case
+and UI option to trigget backgeound location. Once you have decided the use case, you can call below fun to let lib known that ACCESS_BACKGROUND_LOCATION is granted
+
+     btnStartBackgroundFetch.setOnClickListener {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+
+            ) {
+                baseLocationStrategy?.backgroundLocationPermissionGranted()
+            } else {
+                this.requestPermissions(
+                    arrayOf(
+                        Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+                    ), REQUEST_CODE
+                )
             }
-            @Override
-            public void onConnected() {
-                //best location provider has been connected
-            }
-            @Override
-            public void onConnectionStatusChanged() {
-            }
-            @Override
-            public void onFailure(String s) {
-            }
-        });
-        baseLocationStrategy.startLocationUpdates();
-    }
+        }
+
+
+
 
 ```
 
