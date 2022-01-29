@@ -5,7 +5,7 @@ use latest version 2.0.1 (That supports background location till android api 31 
 
 Whats comming next ? 
 
-To make location data as stream and not callback. Will be incorporation flow{} to this lib.
+To make location data as stream and not callback. Will be incorporating flow{} to this lib.
 
 <kbd>
 <img src="https://3c1703fe8d.site.internapcdn.net/newman/gfx/news/hires/2018/location.jpg" alt="Live Location Sharing" width="300">
