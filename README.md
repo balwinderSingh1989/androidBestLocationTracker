@@ -62,13 +62,10 @@ if (    ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_L
     setupLocation();
 }
 
- fun onCreate()
- {
-  baseLocationStrategy = getLocationStatergy(this, this)
- }
 
   private void setupLocation()
     {
+         baseLocationStrategy = getLocationStatergy(this, this)
 
          baseLocationStrategy?.apply {
                   setDisplacement(5)
