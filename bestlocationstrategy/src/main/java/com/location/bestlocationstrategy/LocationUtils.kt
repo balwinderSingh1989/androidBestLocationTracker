@@ -26,9 +26,9 @@ object LocationUtils {
         val googleApiAvailability = GoogleApiAvailability.getInstance()
         val status = googleApiAvailability.isGooglePlayServicesAvailable(context)
         if (status != ConnectionResult.SUCCESS) {
-            if (googleApiAvailability.isUserResolvableError(status)) {
-                googleApiAvailability.getErrorDialog(context as Activity?, status, 2404).show()
-            }
+//            if (googleApiAvailability.isUserResolvableError(status)) {
+//                googleApiAvailability.getErrorDialog(context as Activity?, status, 2404).show()
+//            }
             return false
         }
         return true

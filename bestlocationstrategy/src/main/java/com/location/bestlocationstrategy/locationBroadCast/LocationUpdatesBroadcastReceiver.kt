@@ -9,6 +9,7 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.location.bestlocationstrategy.LocationChangesListener
 import extension.TAG
+import java.lang.Exception
 
 
 /**
@@ -40,11 +41,15 @@ class LocationUpdatesBroadcastReceiver constructor() : BroadcastReceiver() {
         if (intent.action == ACTION_PROCESS_UPDATES) {
             LocationResult.extractResult(intent)?.let { locationResult ->
                 locationResult.locations.map { location ->
-                    locationCallback.onBetterLocationAvailable(location)
+                    try {
+                        locationCallback.onBetterLocationAvailable(location)
+                    } catch (ex: Exception) {
+                        Log.e(TAG, "failed at onReceive with exception " + ex)
+                    }
                 }
-
             }
+
         }
     }
-
 }
+
