@@ -1,7 +1,7 @@
 # androidBestLocationTracker
 Get best available locaiton from android locaiton providers 
 
-use latest version 2.0.1 (That supports background location till android api 31 via foreground service or workmanger.)
+use latest version 2.0.3 (That supports background location till android api 31 via foreground service or workmanger.)
 
 Whats comming next ? 
 
@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-         implementation 'com.github.balwinderSingh1989:androidBestLocationTracker:2.0.1'
+         implementation 'com.github.balwinderSingh1989:androidBestLocationTracker:2.0.3'
 }
 ```
 
