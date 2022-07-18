@@ -40,7 +40,7 @@ android {
 dependencies {
     implementation 'com.google.android.gms:play-services-location:17.1.0'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21'
-    implementation 'androidx.work:work-runtime:2.0.1'
+    implementation 'androidx.work:work-runtime:2.7.1'
 }
 task comps {
     afterEvaluate {

@@ -393,7 +393,7 @@ internal class GooglePlayServiceLocationStrategy(
         mLocationCallback?.let {
             mFusedLocationClient?.removeLocationUpdates(mLocationCallback)
         }
-        WorkManager.getInstance().cancelAllWorkByTag(TAG);
+        WorkManager.getInstance(mAppContext).cancelAllWorkByTag(TAG);
 
     }
 

@@ -111,7 +111,7 @@ class ForegroundOnlyLocationService : Service() {
                     PeriodicWorkRequest.Builder(MyWorker::class.java, 15, TimeUnit.MINUTES)
                         .addTag(TAG)
                         .build()
-                WorkManager.getInstance().enqueueUniquePeriodicWork(
+                WorkManager.getInstance(this).enqueueUniquePeriodicWork(
                     Companion.TAG,
                     ExistingPeriodicWorkPolicy.REPLACE,
                     periodicWork
@@ -214,7 +214,7 @@ class ForegroundOnlyLocationService : Service() {
         cancelIntent.putExtra(EXTRA_CANCEL_LOCATION_TRACKING_FROM_NOTIFICATION, true)
 
         val servicePendingIntent = PendingIntent.getService(
-            this, 0, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT
+            this, 0, cancelIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
 //        val activityPendingIntent = PendingIntent.getActivity(
