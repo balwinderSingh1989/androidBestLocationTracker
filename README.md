@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-         implementation 'com.github.balwinderSingh1989:androidBestLocationTracker:2.0.3'
+         implementation 'com.github.balwinderSingh1989:androidBestLocationTracker:2.0.4'
 }
 ```
 
