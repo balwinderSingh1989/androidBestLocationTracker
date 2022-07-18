@@ -14,7 +14,7 @@ android {
     defaultConfig {
         targetSdkVersion 31
         versionCode 2
-        versionName "2.0.1"
+        versionName "2.0.4"
         compileSdkVersion 31
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
@@ -56,7 +56,7 @@ afterEvaluate {
                     // You can then customize attributes of the publication as shown below.
                     from components.release
                     groupId = 'com.github.balwinderSingh1989'
-                    version = '2.0.2'
+                    version = '2.0.4'
                     artifactId "$project.name"
                 }
             }
