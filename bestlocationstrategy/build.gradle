@@ -13,8 +13,8 @@ android {
 
     defaultConfig {
         targetSdkVersion 31
-        versionCode 2
-        versionName "2.0.4"
+        versionCode 3
+        versionName "2.0.5"
         compileSdkVersion 31
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
