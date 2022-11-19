@@ -64,7 +64,7 @@ class LocationManagerStrategy(private val mAppContext: Context) : BaseLocationSt
     private val bestProvider: String
         get() {
             val criteria = Criteria()
-            criteria.accuracy = Criteria.ACCURACY_HIGH
+            criteria.accuracy = Criteria.ACCURACY_FINE
             return mLocationManager!!.getBestProvider(criteria, false)!!
         }
 
