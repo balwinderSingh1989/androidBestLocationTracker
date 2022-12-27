@@ -215,7 +215,7 @@ class ForegroundOnlyLocationService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         } else {
             PendingIntent.FLAG_UPDATE_CURRENT
-        })
+        }
         val servicePendingIntent = PendingIntent.getService(
             this, 0, cancelIntent, pendingIntent
         )
