@@ -1,7 +1,7 @@
 # androidBestLocationTracker
 Get best available locaiton from android locaiton providers 
 
-use latest version 2.0.4 
+use latest version 2.0.5 
 
 
 Whats comming next ? 

@@ -103,7 +103,7 @@ class ForegroundOnlyLocationService : Service() {
         // NOTE: If this method is called due to a configuration change in MainActivity,
         // we do nothing.
         if (!configurationChange) {
-            if(this.isApiSandAbove()) {
+            if (this.isApiSandAbove()) {
                 Log.d(TAG, "Start work manager")
                 //TODO stop the service here for android API level 31 and above and use work manager instead
                 //https://www.ackee.agency/blog/how-to-fetch-location-in-background-on-android
@@ -116,9 +116,7 @@ class ForegroundOnlyLocationService : Service() {
                     ExistingPeriodicWorkPolicy.REPLACE,
                     periodicWork
                 )
-            }
-            else
-            {
+            } else {
                 Log.d(TAG, "Start foreground service")
                 val notification = generateNotification(currentLocation)
                 startForeground(NOTIFICATION_ID, notification, FOREGROUND_SERVICE_TYPE_LOCATION)
@@ -213,8 +211,13 @@ class ForegroundOnlyLocationService : Service() {
         val cancelIntent = Intent(this, ForegroundOnlyLocationService::class.java)
         cancelIntent.putExtra(EXTRA_CANCEL_LOCATION_TRACKING_FROM_NOTIFICATION, true)
 
+        val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
+        })
         val servicePendingIntent = PendingIntent.getService(
-            this, 0, cancelIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            this, 0, cancelIntent, pendingIntent
         )
 
 //        val activityPendingIntent = PendingIntent.getActivity(
