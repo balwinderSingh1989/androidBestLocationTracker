@@ -1,7 +1,7 @@
 # androidBestLocationTracker
 Get best available locaiton from android locaiton providers 
 
-use latest version 2.0.5 
+use latest version 2.0.6
 
 
 Whats comming next ? 
@@ -31,7 +31,7 @@ repositories {
 }
 
 dependencies {
-         implementation 'com.github.balwinderSingh1989:androidBestLocationTracker:2.0.4'
+         implementation 'com.github.balwinderSingh1989:androidBestLocationTracker:2.0.6'
 }
 ```
 
