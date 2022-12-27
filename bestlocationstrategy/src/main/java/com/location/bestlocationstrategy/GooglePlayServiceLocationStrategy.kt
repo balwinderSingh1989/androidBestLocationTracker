@@ -79,7 +79,7 @@ internal class GooglePlayServiceLocationStrategy(
         val intent = Intent(mAppContext, LocationUpdatesBroadcastReceiver::class.java)
         intent.action = ACTION_PROCESS_UPDATES
         val  pendingIntent =   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) { PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT }
-        else { PendingIntent.FLAG_UPDATE_CURRENT })
+        else { PendingIntent.FLAG_UPDATE_CURRENT }
         PendingIntent.getBroadcast(mAppContext, 0, intent, pendingIntent)
     }
 
