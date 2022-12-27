@@ -4,7 +4,11 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/androidBestLocationTracker.iml" filepath="$PROJECT_DIR$/.idea/modules/androidBestLocationTracker.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/androidBestLocationTracker.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/androidBestLocationTracker.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/androidBestLocationTracker.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/androidBestLocationTracker.app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/androidBestLocationTracker.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/androidBestLocationTracker.app.unitTest.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/bestlocationstrategy/androidBestLocationTracker.bestlocationstrategy.iml" filepath="$PROJECT_DIR$/.idea/modules/bestlocationstrategy/androidBestLocationTracker.bestlocationstrategy.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/bestlocationstrategy/androidBestLocationTracker.bestlocationstrategy.main.iml" filepath="$PROJECT_DIR$/.idea/modules/bestlocationstrategy/androidBestLocationTracker.bestlocationstrategy.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/bestlocationstrategy/androidBestLocationTracker.bestlocationstrategy.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/bestlocationstrategy/androidBestLocationTracker.bestlocationstrategy.unitTest.iml" />
     </modules>
   </component>
 </project>
